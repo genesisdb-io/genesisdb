@@ -1,0 +1,2675 @@
+{
+  "info": {
+    "_postman_id": "679db354-eb28-40d8-b800-290eaa0ad6a4",
+    "name": "GenesisDB 2",
+    "description": "Requests for every route of the GenesisDB HTTP API, in a working order.\n\nSet the collection variables `baseUrl` and `adminToken` (the value of `GENESISDB_AUTH_TOKEN`). Optional `readToken` and `writeToken` match `GENESISDB_READ_TOKEN` and `GENESISDB_WRITE_TOKEN`.\n\nRun the folders top to bottom with the collection runner for a complete smoke test: `1 Health` needs no token, `2 Commit` writes sample data and stores event IDs in variables, the later folders read, query, audit, back up and erase it. `9 Authorization` expects 401/403 and only works when read and write tokens are configured.\n\nList routes answer NDJSON (`application/x-ndjson`): one JSON object per line, each followed by an empty line. The test scripts parse that form. Single-object responses (status, 412 body, rebuild) are plain JSON.\n\nDocs: docs/http-api.md and docs/gdbql.md in the repository.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{adminToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8080",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string",
+      "description": "GENESISDB_AUTH_TOKEN, at least 32 bytes"
+    },
+    {
+      "key": "readToken",
+      "value": "",
+      "type": "string",
+      "description": "GENESISDB_READ_TOKEN, optional"
+    },
+    {
+      "key": "writeToken",
+      "value": "",
+      "type": "string",
+      "description": "GENESISDB_WRITE_TOKEN, optional"
+    },
+    {
+      "key": "customerId",
+      "value": "",
+      "type": "string",
+      "description": "set by 2 Commit"
+    },
+    {
+      "key": "firstEventId",
+      "value": "",
+      "type": "string",
+      "description": "set by 2 Commit"
+    },
+    {
+      "key": "lastEventId",
+      "value": "",
+      "type": "string",
+      "description": "set by 2 Commit"
+    },
+    {
+      "key": "backup",
+      "value": "",
+      "type": "string",
+      "description": "set by 7 Backup, used by Restore"
+    },
+    {
+      "key": "wrongToken",
+      "value": "{{$guid}}{{$guid}}",
+      "type": "string",
+      "description": "any value that is not a configured token, used by 9 Authorization"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 Health",
+      "description": "No token required.",
+      "item": [
+        {
+          "name": "Ping",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ping"
+              ]
+            },
+            "description": "Liveness. Answers the text `Pong`.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"answers Pong\", () => pm.expect(pm.response.text()).to.eql(\"Pong\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ping (API v2)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "ping"
+              ]
+            },
+            "description": "Liveness. Answers the text `Pong`.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"answers Pong\", () => pm.expect(pm.response.text()).to.eql(\"Pong\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ping (API v1)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/status/ping",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "status",
+                "ping"
+              ]
+            },
+            "description": "Same as /ping.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "status"
+              ]
+            },
+            "description": "Engine version and channel, host, event counts, storage format and readiness. Requires a token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"store is ready\", () => pm.expect(body.storage.ready).to.be.true);",
+                  "console.log(\"GenesisDB\", body.engine.version, body.engine.channel, \"events:\", body.events.count);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 Commit",
+      "description": "Writes sample data. Later folders depend on the variables set here.",
+      "item": [
+        {
+          "name": "Commit customer (generated ID)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "commit"
+              ]
+            },
+            "description": "A subject with one segment (`/customer`) gets a generated ID appended. The response holds the stored events with ID, time, hashes. The customer subject and first event ID are saved in variables.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/customer\",\n      \"type\": \"io.genesisdb.app.customer-added\",\n      \"data\": {\n        \"firstName\": \"Bruce\",\n        \"lastName\": \"Wayne\",\n        \"age\": 40,\n        \"address\": {\n          \"city\": \"Gotham\"\n        }\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const events = ndjson();",
+                  "pm.test(\"one event stored\", () => pm.expect(events).to.have.lengthOf(1));",
+                  "pm.test(\"subject got an ID\", () => pm.expect(events[0].subject).to.match(/^\\/customer\\/[0-9a-f-]{36}$/));",
+                  "pm.test(\"hash chain fields present\", () => { pm.expect(events[0].hash).to.have.lengthOf(64); pm.expect(events[0].predecessorhash).to.have.lengthOf(64); });",
+                  "pm.collectionVariables.set(\"customerId\", events[0].subject);",
+                  "pm.collectionVariables.set(\"firstEventId\", events[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Commit batch with precondition",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "commit"
+              ]
+            },
+            "description": "Several events in one atomic batch. The precondition `isSubjectExisting` must hold for the customer committed before. All events are published together or not at all.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"{{customerId}}/address\",\n      \"type\": \"io.genesisdb.app.address-changed\",\n      \"data\": {\n        \"city\": \"Bludhaven\"\n      }\n    },\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/order/1\",\n      \"type\": \"io.genesisdb.app.order-placed\",\n      \"data\": {\n        \"customer\": \"{{customerId}}\",\n        \"amount\": 100,\n        \"category\": \"a\"\n      }\n    },\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/order/2\",\n      \"type\": \"io.genesisdb.app.order-placed\",\n      \"data\": {\n        \"customer\": \"{{customerId}}\",\n        \"amount\": 250,\n        \"category\": \"b\"\n      }\n    },\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/order/3\",\n      \"type\": \"io.genesisdb.app.order-placed\",\n      \"data\": {\n        \"customer\": \"{{customerId}}\",\n        \"amount\": 50,\n        \"category\": \"a\"\n      }\n    }\n  ],\n  \"preconditions\": [\n    {\n      \"type\": \"isSubjectExisting\",\n      \"payload\": {\n        \"subject\": \"{{customerId}}\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const events = ndjson();",
+                  "pm.test(\"four events stored\", () => pm.expect(events).to.have.lengthOf(4));",
+                  "pm.collectionVariables.set(\"lastEventId\", events[events.length - 1].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Commit with reference payload (erasable)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "commit"
+              ]
+            },
+            "description": "`options.storeDataAsReference` stores the payload outside the immutable event, so `POST /erase` can remove it later without breaking the hash chain. Reads resolve the payload transparently, the API never exposes the reference key. `isSubjectNew` fails with 412 on the second run, which is expected.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/user/456\",\n      \"type\": \"io.genesisdb.app.user-added\",\n      \"data\": {\n        \"firstName\": \"Selina\",\n        \"email\": \"selina@example.com\"\n      },\n      \"options\": {\n        \"storeDataAsReference\": true\n      }\n    }\n  ],\n  \"preconditions\": [\n    {\n      \"type\": \"isSubjectNew\",\n      \"payload\": {\n        \"subject\": \"/user/456\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"200 (first run) or 412 (subject exists already)\", () => pm.expect(pm.response.code).to.be.oneOf([200, 412]));",
+                  "if (pm.response.code === 200) { pm.test(\"payload returned resolved\", () => pm.expect(ndjson()[0].data.firstName).to.eql(\"Selina\")); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Commit with query precondition",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "commit"
+              ]
+            },
+            "description": "`isQueryResultTrue` runs a GDBQL query under the writer lock and commits only if the result is true.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/order/4\",\n      \"type\": \"io.genesisdb.app.order-placed\",\n      \"data\": {\n        \"customer\": \"{{customerId}}\",\n        \"amount\": 75,\n        \"category\": \"c\"\n      }\n    }\n  ],\n  \"preconditions\": [\n    {\n      \"type\": \"isQueryResultTrue\",\n      \"payload\": {\n        \"query\": \"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.order-placed' MAP COUNT() < 100\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Precondition failure (412)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "commit"
+              ]
+            },
+            "description": "Expected to fail: `/order/1` exists already. Nothing is written.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/order/1\",\n      \"type\": \"io.genesisdb.app.order-placed\",\n      \"data\": {\n        \"amount\": 1\n      }\n    }\n  ],\n  \"preconditions\": [\n    {\n      \"type\": \"isSubjectNew\",\n      \"payload\": {\n        \"subject\": \"/order/1\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 412\", () => pm.response.to.have.status(412));",
+                  "pm.test(\"names the precondition\", () => pm.expect(pm.response.json().type).to.eql(\"isSubjectNew\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid event (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "commit"
+              ]
+            },
+            "description": "Expected to fail: subject must start with `/`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"no-leading-slash\",\n      \"type\": \"t\",\n      \"data\": {}\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 Fetch",
+      "description": "Reads a subject and its descendants in commit order.",
+      "item": [
+        {
+          "name": "Fetch customer with descendants",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/fetch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "fetch"
+              ]
+            },
+            "description": "Returns the customer event and the address change below it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"{{customerId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"customer and address\", () => pm.expect(ndjson()).to.have.lengthOf(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch all orders",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/fetch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "fetch"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/order\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch with bounds",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/fetch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "fetch"
+              ]
+            },
+            "description": "Bounds are event IDs. Everything from the first committed event up to the last event of the batch.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/\",\n  \"options\": {\n    \"lowerBound\": \"{{firstEventId}}\",\n    \"includeLowerBoundEvent\": true,\n    \"upperBound\": \"{{lastEventId}}\",\n    \"includeUpperBoundEvent\": true\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"five events between the bounds\", () => pm.expect(ndjson()).to.have.lengthOf(5));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch latest by event type",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/fetch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "fetch"
+              ]
+            },
+            "description": "Only the newest event of that type below the subject.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/order\",\n  \"options\": {\n    \"latestByEventType\": \"io.genesisdb.app.order-placed\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"exactly one event\", () => pm.expect(ndjson()).to.have.lengthOf(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch (legacy header x-disable-ndjson for a JSON array)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-disable-ndjson",
+                "value": "true",
+                "description": "1.x compatibility: answer one JSON array instead of NDJSON"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/fetch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "fetch"
+              ]
+            },
+            "description": "Only for 1.x clients that cannot read NDJSON. With this header the list is one JSON array. Every other request in this collection uses the NDJSON default.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/order\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"content type is JSON with the legacy header\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+                  "pm.test(\"body is one array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch (API v1 /stream)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stream",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "stream"
+              ]
+            },
+            "description": "API v1 route of GenesisDB 1.x, answers like its API v2 successor plus `Deprecation` and `Link` headers.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/order\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"deprecation header\", () => pm.expect(pm.response.headers.get(\"Deprecation\")).to.eql(\"true\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4 Query (GDBQL)",
+      "description": "See docs/gdbql.md. Results are NDJSON rows, a single aggregate is a single value.",
+      "item": [
+        {
+          "name": "Project fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "`UNDER` matches direct children of `/order`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM e FROM events WHERE e.subject UNDER '/order' MAP { id: e.id, amount: e.data.amount, category: e.data.category }\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter and order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "Typed comparison: `>= 75` matches numbers only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.order-placed' AND e.data.amount >= 75 ORDER BY e.data.amount DESC MAP { subject: e.subject, amount: e.data.amount }\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Count",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "A single aggregate answers one value.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.order-placed' MAP COUNT()\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"count is a number\", () => pm.expect(parseInt(pm.response.text())).to.be.a(\"number\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sum and average",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.order-placed' MAP { total: SUM(e.data.amount), average: AVG(e.data.amount), orders: COUNT() }\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Group by with HAVING",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.order-placed' GROUP BY e.data.category MAP { category: e.data.category, orders: COUNT(), total: SUM(e.data.amount) } HAVING COUNT() >= 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "IN and DESCENDANTS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "`DESCENDANTS` matches every depth below the subject. `MAP { * }` returns whole events.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM e FROM events WHERE e.subject DESCENDANTS '/customer' AND e.type IN ('io.genesisdb.app.customer-added', 'io.genesisdb.app.address-changed') MAP { * }\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "String concatenation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.customer-added' MAP { name: e.data.firstName + ' ' + e.data.lastName, city: e.data.address.city }\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Limit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "`LIMIT` is applied after loading, it is not storage pagination.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM e FROM events WHERE e.subject UNDER '/order' ORDER BY e.time DESC LIMIT 2 MAP { id: e.id, time: e.time }\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Subquery",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM o FROM (STREAM e FROM events WHERE e.type == 'io.genesisdb.app.order-placed' MAP { amount: e.data.amount, category: e.data.category }) WHERE o.data.category == 'a' MAP { amount: o.data.amount }\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Boolean result (as used in preconditions)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "`COUNT() == n` answers a boolean. This is the shape `isQueryResultTrue` preconditions use.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM e FROM events WHERE e.data.email == 'nobody@example.com' MAP COUNT() == 0\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "LINQ-style compatibility syntax",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "GDBQL also accepts the LINQ-style spelling: `FROM e IN events ... TOP n PROJECT INTO { }`. Existing queries in that form run unchanged. New queries use `STREAM ... MAP`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"FROM e IN events WHERE e.subject UNDER '/order' TOP 2 PROJECT INTO { id: e.id }\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid query (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/query",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "query"
+              ]
+            },
+            "description": "Expected to fail: not GDBQL.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"SELECT * FROM events\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Query (API v1 /q)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/q",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "q"
+              ]
+            },
+            "description": "API v1 route of GenesisDB 1.x.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"STREAM e FROM events MAP COUNT()\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5 Catalog",
+      "description": "Distinct subjects and types from the index.",
+      "item": [
+        {
+          "name": "List top level subjects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/subjects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "subjects"
+              ]
+            },
+            "description": "First path segment of every subject, for example `/customer`, `/order`, `/user`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"includes /order\", () => pm.expect(ndjson().map(s => s.subject)).to.include(\"/order\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List event types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "types"
+              ]
+            },
+            "description": ""
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"includes order-placed\", () => pm.expect(ndjson().map(t => t.type)).to.include(\"io.genesisdb.app.order-placed\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6 Subscribe (SSE)",
+      "description": "Server-Sent Events. Postman keeps the connection open and shows events as they arrive, cancel the request to stop. Commit to the subject from a second tab to see live events.",
+      "item": [
+        {
+          "name": "Subscribe to orders",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "subscribe"
+              ]
+            },
+            "description": "History first, then new events in commit order. A heartbeat `data: {\"payload\":\"\"}` is sent when a poll finds nothing. `interval` is seconds, 0.1 to 86400. The request runs until you cancel it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/order\",\n  \"interval\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Subscribe from a lower bound",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/subscribe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "subscribe"
+              ]
+            },
+            "description": "Resume after a known event: the history starts after `lowerBound`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/\",\n  \"interval\": 0.5,\n  \"options\": {\n    \"lowerBound\": \"{{lastEventId}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Subscribe (API v1 /observe)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/observe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "observe"
+              ]
+            },
+            "description": "API v1 route of GenesisDB 1.x.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/order\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7 Schemas",
+      "description": "Immutable per-type schemas. HTTP commits of the type are validated. Registering twice answers 409.",
+      "item": [
+        {
+          "name": "Register schema",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/schemas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "schemas"
+              ]
+            },
+            "description": "Strict JSON Schema subset: type, properties, required, additionalProperties, items, description, title. Additional fields are rejected unless `additionalProperties: true`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"io.genesisdb.app.product-added\",\n  \"schema\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"name\": {\n        \"type\": \"string\"\n      },\n      \"price\": {\n        \"type\": \"number\"\n      },\n      \"tags\": {\n        \"type\": \"array\",\n        \"items\": {\n          \"type\": \"string\"\n        }\n      }\n    },\n    \"required\": [\n      \"name\",\n      \"price\"\n    ],\n    \"additionalProperties\": false\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 (first run) or 409 (registered already)\", () => pm.expect(pm.response.code).to.be.oneOf([201, 409]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List schemas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/schemas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "schemas"
+              ]
+            },
+            "description": "NDJSON like every other list."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "const schemas = ndjson();",
+                  "pm.test(\"includes product-added\", () => pm.expect(schemas.map(s => s.type)).to.include(\"io.genesisdb.app.product-added\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Commit valid against schema",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "commit"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/product/1\",\n      \"type\": \"io.genesisdb.app.product-added\",\n      \"data\": {\n        \"name\": \"Tumbler\",\n        \"price\": 2990000.5,\n        \"tags\": [\n          \"vehicle\"\n        ]\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Commit violating schema (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "commit"
+              ]
+            },
+            "description": "Expected to fail: `price` is required, `color` is not allowed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/product/2\",\n      \"type\": \"io.genesisdb.app.product-added\",\n      \"data\": {\n        \"name\": \"Batmobile\",\n        \"color\": \"black\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"mentions schema\", () => pm.expect(pm.response.text()).to.include(\"schema\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unsupported schema keyword (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/schemas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "schemas"
+              ]
+            },
+            "description": "Expected to fail: `pattern` is not part of the supported subset.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"io.genesisdb.app.rejected\",\n  \"schema\": {\n    \"type\": \"string\",\n    \"pattern\": \"^a\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register schema (API v1 /schema/register)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/schema/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schema",
+                "register"
+              ]
+            },
+            "description": "API v1 route of GenesisDB 1.x. Answers 409 because the type is registered already.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"io.genesisdb.app.product-added\",\n  \"schema\": {\n    \"type\": \"object\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List schemas (API v1 /schema/get)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/schema/get",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schema",
+                "get"
+              ]
+            },
+            "description": ""
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8 Administration",
+      "description": "Administrator token only. Backup, audit and erase hold the writer lock, commits wait meanwhile.",
+      "item": [
+        {
+          "name": "Audit hash chain",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/admin/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "admin",
+                "audit"
+              ]
+            },
+            "description": "Verifies every event hash and predecessor link in physical log order. Text response."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"audit passed\", () => pm.expect(pm.response.text()).to.include(\"Audit passed\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Backup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/admin/backup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "admin",
+                "backup"
+              ]
+            },
+            "description": "Complete logical backup: events, reference data, system events and schemas. Materialized in memory, the writer lock is held meanwhile. The body is saved in the `backup` variable for Restore. Plain form is a JSON array, extended form (with references, system events or schemas) is an object."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"content disposition is attachment\", () => pm.expect(pm.response.headers.get(\"Content-Disposition\")).to.include(\"attachment\"));",
+                  "pm.collectionVariables.set(\"backup\", pm.response.text());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Backup (API v1 /backup/create)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/backup/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "backup",
+                "create"
+              ]
+            },
+            "description": ""
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Erase reference payload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/admin/erase",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "admin",
+                "erase"
+              ]
+            },
+            "description": "Replaces every reference payload below the subject with `{}`, keys included. Inline `data` is immutable and not touched. Writes a requested and a completed audit system event. 404 if the subject has no events, 422 if it has events but no erasable reference data.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/user/456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"reports erased entries\", () => pm.expect(pm.response.text()).to.match(/^Erased \\d+ ref data files/));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fetch erased subject",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/fetch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "fetch"
+              ]
+            },
+            "description": "The event remains with its metadata and hash, `data` is now `{}`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/user/456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"payload is erased\", () => pm.expect(ndjson()[0].data).to.deep.equal({}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Erase subject with inline data only (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/admin/erase",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "admin",
+                "erase"
+              ]
+            },
+            "description": "Expected to fail: inline data is immutable.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/order/1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Erase unknown subject (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/admin/erase",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "admin",
+                "erase"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/nobody\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rebuild indexes",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/admin/index",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "admin",
+                "index"
+              ]
+            },
+            "description": "Rebuilds every index file from the event logs. Reads and writes wait meanwhile."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const ndjson = () => pm.response.text().split(\"\\n\").filter(l => l.trim()).map(l => JSON.parse(l));",
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success\", () => pm.expect(pm.response.json().status).to.eql(\"success\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restore into non-empty store (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/admin/restore",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "admin",
+                "restore"
+              ]
+            },
+            "description": "Restore requires a completely empty store. Against the store that produced the backup this answers 409. To test a real restore, point `baseUrl` at a fresh instance with an empty data directory and run this request there.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{backup}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 (store not empty) or 200 (empty store)\", () => pm.expect(pm.response.code).to.be.oneOf([200, 409]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restore (API v1 /backup/restore)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/backup/restore",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "backup",
+                "restore"
+              ]
+            },
+            "description": "API v1 route of GenesisDB 1.x.",
+            "body": {
+              "mode": "raw",
+              "raw": "{{backup}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.expect(pm.response.code).to.be.oneOf([200, 409]);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "9 Authorization",
+      "description": "Expects rejections. The read and write token requests only work when GENESISDB_READ_TOKEN and GENESISDB_WRITE_TOKEN are configured and set in the collection variables.",
+      "item": [
+        {
+          "name": "No token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "status"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"message\", () => pm.expect(pm.response.text().trim()).to.eql(\"No token provided\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wrong token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "status"
+              ]
+            },
+            "description": "Any value that is not a configured token. Resolves to two random GUIDs, Postman never sees a literal secret.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{wrongToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read token: fetch allowed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/fetch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "fetch"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/order\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read token: commit forbidden (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "commit"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/order/9\",\n      \"type\": \"t\",\n      \"data\": {}\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Read token: backup forbidden (403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/admin/backup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "admin",
+                "backup"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{readToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Write token: commit allowed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "commit"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"events\": [\n    {\n      \"source\": \"io.genesisdb.app\",\n      \"subject\": \"/order\",\n      \"type\": \"io.genesisdb.app.order-placed\",\n      \"data\": {\n        \"amount\": 1,\n        \"category\": \"z\"\n      }\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{writeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Write token: erase forbidden (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/admin/erase",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "admin",
+                "erase"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"/order\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{writeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Write token: audit forbidden (403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/admin/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "admin",
+                "audit"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{writeToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

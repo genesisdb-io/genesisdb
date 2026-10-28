@@ -1,0 +1,3 @@
+{"format":"genesisdb-sharded-index","version":2,"category":"events-by-subject","shard":"e7","shardCount":256}
+{"k":"/customer/1","s":"/customer/1","t":"io.genesisdb.app.customer-added","id":"709cb38f-fdd9-4105-b11d-4f06cf3562d3","ts":"2026-10-23T17:02:23.155407Z","src":"events.eventstore","off":11,"len":504,"h":"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03","g":"78ff30e3-fa01-4bb6-90d1-5ddc92e52369"}
+{"k":"/customer/1","s":"/customer/1","t":"io.genesisdb.app.customer-renamed","id":"26892934-f655-436b-a6dc-5aaafe7a20c0","ts":"2026-10-23T17:02:23.504568Z","src":"events.eventstore","off":4337,"len":451,"h":"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4","g":"cfb47d9d-eb54-4fd7-9d04-5a8e059fa762"}

@@ -1,0 +1,2 @@
+{"format":"genesisdb-sharded-index","version":2,"category":"events-by-subject-recursive","shard":"63","shardCount":256}
+{"k":"/customer/2","s":"/customer/2","t":"io.genesisdb.app.customer-added","id":"4aa27657-1551-440c-98a4-ac768a5468f4","ts":"2026-10-23T17:02:23.155447Z","src":"events.eventstore","off":516,"len":510,"h":"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c","g":"78ff30e3-fa01-4bb6-90d1-5ddc92e52369"}

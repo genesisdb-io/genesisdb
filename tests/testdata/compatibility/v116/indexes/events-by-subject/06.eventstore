@@ -1,0 +1,2 @@
+{"format":"genesisdb-sharded-index","version":2,"category":"events-by-subject","shard":"06","shardCount":256}
+{"k":"/customer/1/address","s":"/customer/1/address","t":"io.genesisdb.app.address-changed","id":"f90fe2f3-e6b1-418c-bb36-bd924fd9df46","ts":"2026-10-23T17:02:23.266561Z","src":"events.eventstore","off":1493,"len":456,"h":"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5","g":"8a620480-c0da-411e-9dd9-ea5bfeb44855"}

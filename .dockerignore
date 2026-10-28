@@ -1,0 +1,10 @@
+.git
+.github
+.env
+.env.*
+data
+bin
+*.test
+*.out
+*.pem
+*.key

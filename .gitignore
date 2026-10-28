@@ -1,0 +1,8 @@
+/bin/
+/data/
+.env
+*.test
+*.out
+/genesisdb
+dist/
+/THIRD_PARTY_LICENSES

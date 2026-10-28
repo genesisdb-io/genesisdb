@@ -1,0 +1,2 @@
+{"format":"genesisdb-sharded-index","version":2,"category":"events-by-subject","shard":"9f","shardCount":256}
+{"k":"/article/1","s":"/article/1","t":"io.genesisdb.store.article-added","id":"e3854cf6-2aab-496c-854c-8f77190236b0","ts":"2026-10-23T17:02:23.218676Z","src":"events.eventstore","off":1027,"len":465,"h":"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf","g":"73993792-faa6-4c26-bc9f-12bd0d6fbb4d"}

@@ -1,0 +1,2 @@
+{"format":"genesisdb-sharded-index","version":2,"category":"events-by-id","shard":"94","shardCount":256}
+{"k":"26892934-f655-436b-a6dc-5aaafe7a20c0","s":"/customer/1","t":"io.genesisdb.app.customer-renamed","id":"26892934-f655-436b-a6dc-5aaafe7a20c0","ts":"2026-10-23T17:02:23.504568Z","src":"events.eventstore","off":4337,"len":451,"h":"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4","g":"cfb47d9d-eb54-4fd7-9d04-5a8e059fa762"}

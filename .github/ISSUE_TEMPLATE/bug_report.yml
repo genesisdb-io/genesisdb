@@ -1,0 +1,104 @@
+name: Bug report
+description: Something does not behave as documented
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Remove tokens and personal event data from everything you paste.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Be specific. Include the exact error message or response body.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The smallest sequence of requests or SDK calls that triggers the problem. curl commands are ideal.
+      placeholder: |
+        curl localhost:8080/api/v2/commit -H "Authorization: Bearer $TOKEN" -d '{"events":[...]}'
+        curl localhost:8080/api/v2/fetch -H "Authorization: Bearer $TOKEN" -d '{"subject":"/..."}'
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: GenesisDB version
+      description: "Output of `genesisdb version`, or the image tag"
+      placeholder: "2.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How do you run it?
+      options:
+        - Container image
+        - Binary from the releases page
+        - go install
+        - Built from source
+        - Embedded in a Go program
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: client
+    attributes:
+      label: Client
+      description: curl, the SDK and its version, the VS Code extension, or an MCP client
+      placeholder: "genesisdb (npm) 2.0.0"
+
+  - type: dropdown
+    id: migrated
+    attributes:
+      label: Was the data directory migrated from GenesisDB 1.x?
+      options:
+        - "No, created by 2.x"
+        - "Yes, migrated on first start"
+        - "Yes, migrated with genesisdb convert"
+        - "Unknown"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant server log lines, with GENESISDB_LOG_LEVEL=debug if possible.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find a duplicate
+          required: true
+        - label: This is not a security vulnerability (those go to the address in SECURITY.md)
+          required: true

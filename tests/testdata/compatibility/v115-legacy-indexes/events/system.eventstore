@@ -1,0 +1,2 @@
+eventstore
+{"event":{"source":"tag:system.genesisdb.io","subject":"/customer/5","type":"io.genesisdb.system.ref-erased","specversion":"1.0","id":"83258a31-25d3-4755-a83e-9ef1993939f5","time":"2026-10-23T19:02:23.607804+02:00","datacontenttype":"application/json","predecessorhash":"0000000000000000000000000000000000000000000000000000000000000000","data":{},"hash":"d656030e0af82267881d87d258eed8d4db10cc1bbb1257cc50760d400e44fe9a","options":{}}}

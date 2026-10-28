@@ -1,0 +1,12 @@
+{
+  "allowAdditionalProperties": true,
+  "properties": {
+    "age": {
+      "type": "number"
+    },
+    "firstName": {
+      "required": true,
+      "type": "string"
+    }
+  }
+}

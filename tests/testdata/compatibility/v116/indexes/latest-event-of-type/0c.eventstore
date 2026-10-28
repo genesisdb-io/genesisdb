@@ -1,0 +1,2 @@
+{"format":"genesisdb-sharded-index","version":2,"category":"latest-event-of-type","shard":"0c","shardCount":256}
+{"k":"","s":"/order/1","t":"io.genesisdb.app.order-placed","id":"bbcf86fe-4f4f-4e36-afa5-48fb4317d63a","ts":"2026-10-23T17:02:23.41654Z","src":"events.eventstore","off":2983,"len":450,"h":"d75f36dbc2f0a343e97bef4d58ca2e8e9203baf1e573d88394c351526cf13a26","g":"e8f2412b-6b53-4d42-9b80-725d5a22141b"}

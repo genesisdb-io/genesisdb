@@ -1,0 +1,54 @@
+name: CI
+
+# Runs on every pull request and on every push to main. Releases are
+# triggered by hand, see release.yml.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install pinned audit tools
+        run: make install-tools
+      - name: Lint
+        run: make lint
+      - name: Test
+        run: make test
+      - name: Disk-full tests on a real 4 MiB volume
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p /tmp/gdbfull
+          sudo mount -t tmpfs -o size=4m,uid=$(id -u),gid=$(id -g) tmpfs /tmp/gdbfull
+          GENESISDB_FULL_VOLUME=/tmp/gdbfull go test -count=1 -run TestDiskFull -v ./packages/store/
+          sudo umount /tmp/gdbfull
+      - name: Build
+        run: make build
+      - name: Vulnerability scan
+        run: make vuln
+      - name: Third-party licenses are MIT, BSD, Apache 2.0 or ISC
+        if: runner.os == 'Linux'
+        run: make licenses
+      - name: Fuzz parsers and commit path
+        run: make fuzz
+      - name: Benchmark smoke test
+        run: make bench
+      - name: Scan Git history and checkout for secrets
+        run: |
+          gitleaks git --redact --no-banner
+          gitleaks dir --redact --no-banner .

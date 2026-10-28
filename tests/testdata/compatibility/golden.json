@@ -1,0 +1,407 @@
+[
+  {
+    "name": "stream-root",
+    "route": "/api/v1/stream",
+    "method": "POST",
+    "body": "{\"subject\":\"/\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"709cb38f-fdd9-4105-b11d-4f06cf3562d3\",\"time\":\"2026-10-23T19:02:23.155407+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"data\":{\"firstName\":\"Bruce\",\"lastName\":\"Wayne\",\"age\":40,\"address\":{\"city\":\"Gotham\"}},\"hash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/2\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"4aa27657-1551-440c-98a4-ac768a5468f4\",\"time\":\"2026-10-23T19:02:23.155447+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\",\"data\":{\"firstName\":\"Alfred\",\"lastName\":\"Pennyworth\",\"age\":70,\"address\":{\"city\":\"London\"}},\"hash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\"}\n\n{\"source\":\"io.genesisdb.store\",\"subject\":\"/article/1\",\"type\":\"io.genesisdb.store.article-added\",\"specversion\":\"1.0\",\"id\":\"e3854cf6-2aab-496c-854c-8f77190236b0\",\"time\":\"2026-10-23T19:02:23.218676+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\",\"data\":{\"name\":\"Tumbler\",\"price\":2990000.5},\"hash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1/address\",\"type\":\"io.genesisdb.app.address-changed\",\"specversion\":\"1.0\",\"id\":\"f90fe2f3-e6b1-418c-bb36-bd924fd9df46\",\"time\":\"2026-10-23T19:02:23.266561+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\",\"data\":{\"city\":\"Bludhaven\"},\"hash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/3\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"2aa92e95-8665-413b-8ad8-95a9da98f142\",\"time\":\"2026-10-23T19:02:23.316487+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\",\"data\":{\"firstName\":\"Selina\",\"age\":35},\"hash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/4\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"cd6d89a2-fa6a-4195-9392-35db22905a11\",\"time\":\"2026-10-23T19:02:23.366639+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\",\"data\":{\"firstName\":\"Diana\",\"age\":30},\"hash\":\"09a0443a746c7acae485f9a297c2d9319385cce64310f3ba1a03e62ef10fafcf\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/order/1\",\"type\":\"io.genesisdb.app.order-placed\",\"specversion\":\"1.0\",\"id\":\"bbcf86fe-4f4f-4e36-afa5-48fb4317d63a\",\"time\":\"2026-10-23T19:02:23.41654+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"09a0443a746c7acae485f9a297c2d9319385cce64310f3ba1a03e62ef10fafcf\",\"data\":{\"amount\":100,\"category\":\"a\"},\"hash\":\"d75f36dbc2f0a343e97bef4d58ca2e8e9203baf1e573d88394c351526cf13a26\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/order/2\",\"type\":\"io.genesisdb.app.order-placed\",\"specversion\":\"1.0\",\"id\":\"174c30e0-0846-47a7-a132-7e8bc6fd9357\",\"time\":\"2026-10-23T19:02:23.416549+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"d75f36dbc2f0a343e97bef4d58ca2e8e9203baf1e573d88394c351526cf13a26\",\"data\":{\"amount\":250,\"category\":\"b\"},\"hash\":\"8e8535835f8e82087e5e1471f768326a4f44199462e7cc721e7a48477168fbdb\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/order/3\",\"type\":\"io.genesisdb.app.order-placed\",\"specversion\":\"1.0\",\"id\":\"8ce838bc-3507-416c-bfd3-733f013966c8\",\"time\":\"2026-10-23T19:02:23.416551+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"8e8535835f8e82087e5e1471f768326a4f44199462e7cc721e7a48477168fbdb\",\"data\":{\"amount\":50,\"category\":\"a\"},\"hash\":\"00d199c9cc5713cb979435af2d05cef71d161e55b74609ebbdc0a71da19256c4\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-renamed\",\"specversion\":\"1.0\",\"id\":\"26892934-f655-436b-a6dc-5aaafe7a20c0\",\"time\":\"2026-10-23T19:02:23.504568+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"00d199c9cc5713cb979435af2d05cef71d161e55b74609ebbdc0a71da19256c4\",\"data\":{\"firstName\":\"Batman\"},\"hash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/5\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"41bde6cb-2b9c-4d76-8863-c1781576c9b0\",\"time\":\"2026-10-23T19:02:23.555708+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\",\"data\":{\"age\":\"\",\"firstName\":\"\"},\"hash\":\"5404b4104bdc67f226499d995bb58552a1ab5681ef42b9115716acf4efb7101b\"}\n\n"
+  },
+  {
+    "name": "stream-customer",
+    "route": "/api/v1/stream",
+    "method": "POST",
+    "body": "{\"subject\":\"/customer\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"709cb38f-fdd9-4105-b11d-4f06cf3562d3\",\"time\":\"2026-10-23T19:02:23.155407+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"data\":{\"firstName\":\"Bruce\",\"lastName\":\"Wayne\",\"age\":40,\"address\":{\"city\":\"Gotham\"}},\"hash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/2\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"4aa27657-1551-440c-98a4-ac768a5468f4\",\"time\":\"2026-10-23T19:02:23.155447+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\",\"data\":{\"firstName\":\"Alfred\",\"lastName\":\"Pennyworth\",\"age\":70,\"address\":{\"city\":\"London\"}},\"hash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1/address\",\"type\":\"io.genesisdb.app.address-changed\",\"specversion\":\"1.0\",\"id\":\"f90fe2f3-e6b1-418c-bb36-bd924fd9df46\",\"time\":\"2026-10-23T19:02:23.266561+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\",\"data\":{\"city\":\"Bludhaven\"},\"hash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/3\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"2aa92e95-8665-413b-8ad8-95a9da98f142\",\"time\":\"2026-10-23T19:02:23.316487+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\",\"data\":{\"firstName\":\"Selina\",\"age\":35},\"hash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/4\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"cd6d89a2-fa6a-4195-9392-35db22905a11\",\"time\":\"2026-10-23T19:02:23.366639+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\",\"data\":{\"firstName\":\"Diana\",\"age\":30},\"hash\":\"09a0443a746c7acae485f9a297c2d9319385cce64310f3ba1a03e62ef10fafcf\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-renamed\",\"specversion\":\"1.0\",\"id\":\"26892934-f655-436b-a6dc-5aaafe7a20c0\",\"time\":\"2026-10-23T19:02:23.504568+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"00d199c9cc5713cb979435af2d05cef71d161e55b74609ebbdc0a71da19256c4\",\"data\":{\"firstName\":\"Batman\"},\"hash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/5\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"41bde6cb-2b9c-4d76-8863-c1781576c9b0\",\"time\":\"2026-10-23T19:02:23.555708+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\",\"data\":{\"age\":\"\",\"firstName\":\"\"},\"hash\":\"5404b4104bdc67f226499d995bb58552a1ab5681ef42b9115716acf4efb7101b\"}\n\n"
+  },
+  {
+    "name": "stream-customer-json",
+    "route": "/api/v1/stream",
+    "method": "POST",
+    "body": "{\"subject\":\"/customer\"}",
+    "headers": {
+      "x-disable-ndjson": "true"
+    },
+    "status": 200,
+    "contentType": "application/json",
+    "response": "[{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"709cb38f-fdd9-4105-b11d-4f06cf3562d3\",\"time\":\"2026-10-23T19:02:23.155407+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"data\":{\"firstName\":\"Bruce\",\"lastName\":\"Wayne\",\"age\":40,\"address\":{\"city\":\"Gotham\"}},\"hash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\"},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/2\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"4aa27657-1551-440c-98a4-ac768a5468f4\",\"time\":\"2026-10-23T19:02:23.155447+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\",\"data\":{\"firstName\":\"Alfred\",\"lastName\":\"Pennyworth\",\"age\":70,\"address\":{\"city\":\"London\"}},\"hash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\"},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1/address\",\"type\":\"io.genesisdb.app.address-changed\",\"specversion\":\"1.0\",\"id\":\"f90fe2f3-e6b1-418c-bb36-bd924fd9df46\",\"time\":\"2026-10-23T19:02:23.266561+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\",\"data\":{\"city\":\"Bludhaven\"},\"hash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\"},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/3\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"2aa92e95-8665-413b-8ad8-95a9da98f142\",\"time\":\"2026-10-23T19:02:23.316487+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\",\"data\":{\"firstName\":\"Selina\",\"age\":35},\"hash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\"},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/4\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"cd6d89a2-fa6a-4195-9392-35db22905a11\",\"time\":\"2026-10-23T19:02:23.366639+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\",\"data\":{\"firstName\":\"Diana\",\"age\":30},\"hash\":\"09a0443a746c7acae485f9a297c2d9319385cce64310f3ba1a03e62ef10fafcf\"},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-renamed\",\"specversion\":\"1.0\",\"id\":\"26892934-f655-436b-a6dc-5aaafe7a20c0\",\"time\":\"2026-10-23T19:02:23.504568+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"00d199c9cc5713cb979435af2d05cef71d161e55b74609ebbdc0a71da19256c4\",\"data\":{\"firstName\":\"Batman\"},\"hash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\"},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/5\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"41bde6cb-2b9c-4d76-8863-c1781576c9b0\",\"time\":\"2026-10-23T19:02:23.555708+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\",\"data\":{\"age\":\"\",\"firstName\":\"\"},\"hash\":\"5404b4104bdc67f226499d995bb58552a1ab5681ef42b9115716acf4efb7101b\"}]\n"
+  },
+  {
+    "name": "stream-customer1",
+    "route": "/api/v1/stream",
+    "method": "POST",
+    "body": "{\"subject\":\"/customer/1\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"709cb38f-fdd9-4105-b11d-4f06cf3562d3\",\"time\":\"2026-10-23T19:02:23.155407+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"data\":{\"firstName\":\"Bruce\",\"lastName\":\"Wayne\",\"age\":40,\"address\":{\"city\":\"Gotham\"}},\"hash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1/address\",\"type\":\"io.genesisdb.app.address-changed\",\"specversion\":\"1.0\",\"id\":\"f90fe2f3-e6b1-418c-bb36-bd924fd9df46\",\"time\":\"2026-10-23T19:02:23.266561+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\",\"data\":{\"city\":\"Bludhaven\"},\"hash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-renamed\",\"specversion\":\"1.0\",\"id\":\"26892934-f655-436b-a6dc-5aaafe7a20c0\",\"time\":\"2026-10-23T19:02:23.504568+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"00d199c9cc5713cb979435af2d05cef71d161e55b74609ebbdc0a71da19256c4\",\"data\":{\"firstName\":\"Batman\"},\"hash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\"}\n\n"
+  },
+  {
+    "name": "stream-bounds",
+    "route": "/api/v1/stream",
+    "method": "POST",
+    "body": "{\"subject\":\"/\",\"options\":{\"lowerBound\":\"4aa27657-1551-440c-98a4-ac768a5468f4\",\"includeLowerBoundEvent\":true,\"upperBound\":\"cd6d89a2-fa6a-4195-9392-35db22905a11\",\"includeUpperBoundEvent\":false}}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/2\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"4aa27657-1551-440c-98a4-ac768a5468f4\",\"time\":\"2026-10-23T19:02:23.155447+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\",\"data\":{\"firstName\":\"Alfred\",\"lastName\":\"Pennyworth\",\"age\":70,\"address\":{\"city\":\"London\"}},\"hash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\"}\n\n{\"source\":\"io.genesisdb.store\",\"subject\":\"/article/1\",\"type\":\"io.genesisdb.store.article-added\",\"specversion\":\"1.0\",\"id\":\"e3854cf6-2aab-496c-854c-8f77190236b0\",\"time\":\"2026-10-23T19:02:23.218676+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\",\"data\":{\"name\":\"Tumbler\",\"price\":2990000.5},\"hash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1/address\",\"type\":\"io.genesisdb.app.address-changed\",\"specversion\":\"1.0\",\"id\":\"f90fe2f3-e6b1-418c-bb36-bd924fd9df46\",\"time\":\"2026-10-23T19:02:23.266561+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\",\"data\":{\"city\":\"Bludhaven\"},\"hash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/3\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"2aa92e95-8665-413b-8ad8-95a9da98f142\",\"time\":\"2026-10-23T19:02:23.316487+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\",\"data\":{\"firstName\":\"Selina\",\"age\":35},\"hash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\"}\n\n"
+  },
+  {
+    "name": "stream-lower-excl",
+    "route": "/api/v1/stream",
+    "method": "POST",
+    "body": "{\"subject\":\"/\",\"options\":{\"lowerBound\":\"4aa27657-1551-440c-98a4-ac768a5468f4\"}}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"source\":\"io.genesisdb.store\",\"subject\":\"/article/1\",\"type\":\"io.genesisdb.store.article-added\",\"specversion\":\"1.0\",\"id\":\"e3854cf6-2aab-496c-854c-8f77190236b0\",\"time\":\"2026-10-23T19:02:23.218676+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\",\"data\":{\"name\":\"Tumbler\",\"price\":2990000.5},\"hash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1/address\",\"type\":\"io.genesisdb.app.address-changed\",\"specversion\":\"1.0\",\"id\":\"f90fe2f3-e6b1-418c-bb36-bd924fd9df46\",\"time\":\"2026-10-23T19:02:23.266561+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\",\"data\":{\"city\":\"Bludhaven\"},\"hash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/3\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"2aa92e95-8665-413b-8ad8-95a9da98f142\",\"time\":\"2026-10-23T19:02:23.316487+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\",\"data\":{\"firstName\":\"Selina\",\"age\":35},\"hash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/4\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"cd6d89a2-fa6a-4195-9392-35db22905a11\",\"time\":\"2026-10-23T19:02:23.366639+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\",\"data\":{\"firstName\":\"Diana\",\"age\":30},\"hash\":\"09a0443a746c7acae485f9a297c2d9319385cce64310f3ba1a03e62ef10fafcf\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/order/1\",\"type\":\"io.genesisdb.app.order-placed\",\"specversion\":\"1.0\",\"id\":\"bbcf86fe-4f4f-4e36-afa5-48fb4317d63a\",\"time\":\"2026-10-23T19:02:23.41654+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"09a0443a746c7acae485f9a297c2d9319385cce64310f3ba1a03e62ef10fafcf\",\"data\":{\"amount\":100,\"category\":\"a\"},\"hash\":\"d75f36dbc2f0a343e97bef4d58ca2e8e9203baf1e573d88394c351526cf13a26\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/order/2\",\"type\":\"io.genesisdb.app.order-placed\",\"specversion\":\"1.0\",\"id\":\"174c30e0-0846-47a7-a132-7e8bc6fd9357\",\"time\":\"2026-10-23T19:02:23.416549+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"d75f36dbc2f0a343e97bef4d58ca2e8e9203baf1e573d88394c351526cf13a26\",\"data\":{\"amount\":250,\"category\":\"b\"},\"hash\":\"8e8535835f8e82087e5e1471f768326a4f44199462e7cc721e7a48477168fbdb\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/order/3\",\"type\":\"io.genesisdb.app.order-placed\",\"specversion\":\"1.0\",\"id\":\"8ce838bc-3507-416c-bfd3-733f013966c8\",\"time\":\"2026-10-23T19:02:23.416551+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"8e8535835f8e82087e5e1471f768326a4f44199462e7cc721e7a48477168fbdb\",\"data\":{\"amount\":50,\"category\":\"a\"},\"hash\":\"00d199c9cc5713cb979435af2d05cef71d161e55b74609ebbdc0a71da19256c4\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-renamed\",\"specversion\":\"1.0\",\"id\":\"26892934-f655-436b-a6dc-5aaafe7a20c0\",\"time\":\"2026-10-23T19:02:23.504568+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"00d199c9cc5713cb979435af2d05cef71d161e55b74609ebbdc0a71da19256c4\",\"data\":{\"firstName\":\"Batman\"},\"hash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/5\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"41bde6cb-2b9c-4d76-8863-c1781576c9b0\",\"time\":\"2026-10-23T19:02:23.555708+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\",\"data\":{\"age\":\"\",\"firstName\":\"\"},\"hash\":\"5404b4104bdc67f226499d995bb58552a1ab5681ef42b9115716acf4efb7101b\"}\n\n"
+  },
+  {
+    "name": "stream-upper-incl",
+    "route": "/api/v1/stream",
+    "method": "POST",
+    "body": "{\"subject\":\"/\",\"options\":{\"upperBound\":\"cd6d89a2-fa6a-4195-9392-35db22905a11\",\"includeUpperBoundEvent\":true}}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"709cb38f-fdd9-4105-b11d-4f06cf3562d3\",\"time\":\"2026-10-23T19:02:23.155407+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"data\":{\"firstName\":\"Bruce\",\"lastName\":\"Wayne\",\"age\":40,\"address\":{\"city\":\"Gotham\"}},\"hash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/2\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"4aa27657-1551-440c-98a4-ac768a5468f4\",\"time\":\"2026-10-23T19:02:23.155447+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\",\"data\":{\"firstName\":\"Alfred\",\"lastName\":\"Pennyworth\",\"age\":70,\"address\":{\"city\":\"London\"}},\"hash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\"}\n\n{\"source\":\"io.genesisdb.store\",\"subject\":\"/article/1\",\"type\":\"io.genesisdb.store.article-added\",\"specversion\":\"1.0\",\"id\":\"e3854cf6-2aab-496c-854c-8f77190236b0\",\"time\":\"2026-10-23T19:02:23.218676+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\",\"data\":{\"name\":\"Tumbler\",\"price\":2990000.5},\"hash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1/address\",\"type\":\"io.genesisdb.app.address-changed\",\"specversion\":\"1.0\",\"id\":\"f90fe2f3-e6b1-418c-bb36-bd924fd9df46\",\"time\":\"2026-10-23T19:02:23.266561+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\",\"data\":{\"city\":\"Bludhaven\"},\"hash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/3\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"2aa92e95-8665-413b-8ad8-95a9da98f142\",\"time\":\"2026-10-23T19:02:23.316487+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\",\"data\":{\"firstName\":\"Selina\",\"age\":35},\"hash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\"}\n\n{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/4\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"cd6d89a2-fa6a-4195-9392-35db22905a11\",\"time\":\"2026-10-23T19:02:23.366639+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\",\"data\":{\"firstName\":\"Diana\",\"age\":30},\"hash\":\"09a0443a746c7acae485f9a297c2d9319385cce64310f3ba1a03e62ef10fafcf\"}\n\n"
+  },
+  {
+    "name": "stream-latest-by-type",
+    "route": "/api/v1/stream",
+    "method": "POST",
+    "body": "{\"subject\":\"/customer\",\"options\":{\"latestByEventType\":\"io.genesisdb.app.customer-added\"}}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/5\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"41bde6cb-2b9c-4d76-8863-c1781576c9b0\",\"time\":\"2026-10-23T19:02:23.555708+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\",\"data\":{\"age\":\"\",\"firstName\":\"\"},\"hash\":\"5404b4104bdc67f226499d995bb58552a1ab5681ef42b9115716acf4efb7101b\"}\n\n"
+  },
+  {
+    "name": "stream-unknown",
+    "route": "/api/v1/stream",
+    "method": "POST",
+    "body": "{\"subject\":\"/nothing\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": ""
+  },
+  {
+    "name": "query-a0",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.subject UNDER '/customer' ORDER BY e.time MAP { id: e.id, name: e.data.firstName }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"id\":\"709cb38f-fdd9-4105-b11d-4f06cf3562d3\",\"name\":\"Bruce\"}\n\n{\"id\":\"4aa27657-1551-440c-98a4-ac768a5468f4\",\"name\":\"Alfred\"}\n\n{\"id\":\"2aa92e95-8665-413b-8ad8-95a9da98f142\",\"name\":\"Selina\"}\n\n{\"id\":\"cd6d89a2-fa6a-4195-9392-35db22905a11\",\"name\":\"Diana\"}\n\n{\"id\":\"26892934-f655-436b-a6dc-5aaafe7a20c0\",\"name\":\"Batman\"}\n\n{\"id\":\"41bde6cb-2b9c-4d76-8863-c1781576c9b0\",\"name\":\"\"}\n\n"
+  },
+  {
+    "name": "query-a1",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"FROM e IN events WHERE e.type == 'io.genesisdb.app.order-placed' PROJECT INTO { amount: e.data.amount }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"amount\":100}\n\n{\"amount\":250}\n\n{\"amount\":50}\n\n"
+  },
+  {
+    "name": "query-a2",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.order-placed' MAP COUNT()\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "3\n\n"
+  },
+  {
+    "name": "query-a3",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.order-placed' MAP { total: SUM(e.data.amount), avg: AVG(e.data.amount), lo: MIN(e.data.amount), hi: MAX(e.data.amount) }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"avg\":133.33333333333334,\"hi\":250,\"lo\":50,\"total\":400}\n\n"
+  },
+  {
+    "name": "query-a4",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.subject DESCENDANTS '/customer' AND e.data.age \\u003e 34 MAP { n: e.data.firstName, a: e.data.age }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"a\":40,\"n\":\"Bruce\"}\n\n{\"a\":70,\"n\":\"Alfred\"}\n\n{\"a\":35,\"n\":\"Selina\"}\n\n"
+  },
+  {
+    "name": "query-a5",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.data.address.city == 'Gotham' MAP { city: e.data.address.city }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"city\":\"Gotham\"}\n\n"
+  },
+  {
+    "name": "query-a6",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.type IN ('io.genesisdb.store.article-added', 'io.genesisdb.app.address-changed') ORDER BY e.time DESC MAP { t: e.type }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"t\":\"io.genesisdb.store.article-added\"}\n\n"
+  },
+  {
+    "name": "query-a7",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.data.amount BETWEEN 60 AND 300 MAP { a: e.data.amount }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"a\":100}\n\n{\"a\":250}\n\n"
+  },
+  {
+    "name": "query-a8",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.order-placed' ORDER BY e.data.amount DESC LIMIT 2 MAP { a: e.data.amount }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"a\":250}\n\n{\"a\":100}\n\n"
+  },
+  {
+    "name": "query-a9",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.subject == '/customer/1' OR e.subject == '/order/2' MAP { s: e.subject }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"s\":\"/customer/1\"}\n\n{\"s\":\"/order/2\"}\n\n{\"s\":\"/customer/1\"}\n\n"
+  },
+  {
+    "name": "query-b0",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.customer-added' MAP { full: e.data.firstName + ' ' + e.data.lastName }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"full\":\"Bruce Wayne\"}\n\n{\"full\":\"Alfred Pennyworth\"}\n\n{\"full\":\"Selina \"}\n\n{\"full\":\"Diana \"}\n\n{\"full\":\" \"}\n\n"
+  },
+  {
+    "name": "query-b1",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.type == 'io.genesisdb.app.order-placed' GROUP BY e.data.category MAP { c: COUNT(), s: SUM(e.data.amount) }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"c\":2,\"e.data.category\":\"a\",\"s\":150}\n\n{\"c\":1,\"e.data.category\":\"b\",\"s\":250}\n\n"
+  },
+  {
+    "name": "query-b2",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.subject UNDER '/' MAP { s: e.subject }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": ""
+  },
+  {
+    "name": "query-b3",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.subject == '/customer/3' MAP { * }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/3\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"2aa92e95-8665-413b-8ad8-95a9da98f142\",\"time\":\"2026-10-23T19:02:23.316487+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\",\"data\":{\"firstName\":\"Selina\",\"age\":35},\"hash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\",\"ref\":\"7926cb47b8585281ed1b9afc937ff8f4c94e4c4440e34f3cf3dd55bf5bfaa377\",\"options\":{\"storeDataAsReference\":true}}\n\n"
+  },
+  {
+    "name": "query-b4",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.data.email == 'x' MAP COUNT() == 0\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "true\n\n"
+  },
+  {
+    "name": "query-b5",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.type != 'io.genesisdb.app.order-placed' MAP { id: e.id }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"id\":\"709cb38f-fdd9-4105-b11d-4f06cf3562d3\"}\n\n{\"id\":\"4aa27657-1551-440c-98a4-ac768a5468f4\"}\n\n{\"id\":\"e3854cf6-2aab-496c-854c-8f77190236b0\"}\n\n{\"id\":\"f90fe2f3-e6b1-418c-bb36-bd924fd9df46\"}\n\n{\"id\":\"2aa92e95-8665-413b-8ad8-95a9da98f142\"}\n\n{\"id\":\"cd6d89a2-fa6a-4195-9392-35db22905a11\"}\n\n{\"id\":\"26892934-f655-436b-a6dc-5aaafe7a20c0\"}\n\n{\"id\":\"41bde6cb-2b9c-4d76-8863-c1781576c9b0\"}\n\n"
+  },
+  {
+    "name": "query-b6",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events TOP 3 MAP { id: e.id }\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"id\":\"709cb38f-fdd9-4105-b11d-4f06cf3562d3\"}\n\n{\"id\":\"4aa27657-1551-440c-98a4-ac768a5468f4\"}\n\n{\"id\":\"e3854cf6-2aab-496c-854c-8f77190236b0\"}\n\n"
+  },
+  {
+    "name": "query-b7",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.subject UNDER '/order' MAP 2+3\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"2+3\":null}\n\n{\"2+3\":null}\n\n{\"2+3\":null}\n\n"
+  },
+  {
+    "name": "query-b8",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"STREAM e FROM events WHERE e.subject UNDER '/customer' MAP e.data.firstName\"}",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"firstName\":\"Bruce\"}\n\n{\"firstName\":\"Alfred\"}\n\n{\"firstName\":\"Selina\"}\n\n{\"firstName\":\"Diana\"}\n\n{\"firstName\":\"Batman\"}\n\n{\"firstName\":\"\"}\n\n"
+  },
+  {
+    "name": "query-parse-error",
+    "route": "/api/v1/query",
+    "method": "POST",
+    "body": "{\"query\":\"SELECT nothing\"}",
+    "status": 400,
+    "contentType": "text/plain; charset=utf-8",
+    "response": "Failed to parse query: invalid query: missing FROM or STREAM clause\n"
+  },
+  {
+    "name": "subjects",
+    "route": "/api/v1/subjects",
+    "method": "GET",
+    "body": "",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"subject\":\"/article\"}\n\n{\"subject\":\"/customer\"}\n\n{\"subject\":\"/order\"}\n\n"
+  },
+  {
+    "name": "subjects-json",
+    "route": "/api/v1/subjects",
+    "method": "GET",
+    "body": "",
+    "headers": {
+      "x-disable-ndjson": "true"
+    },
+    "status": 200,
+    "contentType": "application/json",
+    "response": "[{\"subject\":\"/article\"},{\"subject\":\"/customer\"},{\"subject\":\"/order\"}]\n"
+  },
+  {
+    "name": "types",
+    "route": "/api/v1/types",
+    "method": "GET",
+    "body": "",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"type\":\"io.genesisdb.app.address-changed\"}\n\n{\"type\":\"io.genesisdb.app.customer-added\"}\n\n{\"type\":\"io.genesisdb.app.customer-renamed\"}\n\n{\"type\":\"io.genesisdb.app.order-placed\"}\n\n{\"type\":\"io.genesisdb.store.article-added\"}\n\n"
+  },
+  {
+    "name": "types-json",
+    "route": "/api/v1/types",
+    "method": "GET",
+    "body": "",
+    "headers": {
+      "x-disable-ndjson": "true"
+    },
+    "status": 200,
+    "contentType": "application/json",
+    "response": "[{\"type\":\"io.genesisdb.app.address-changed\"},{\"type\":\"io.genesisdb.app.customer-added\"},{\"type\":\"io.genesisdb.app.customer-renamed\"},{\"type\":\"io.genesisdb.app.order-placed\"},{\"type\":\"io.genesisdb.store.article-added\"}]\n"
+  },
+  {
+    "name": "backup",
+    "route": "/api/v1/backup/create",
+    "method": "GET",
+    "body": "",
+    "status": 200,
+    "contentType": "application/json",
+    "response": "{\"events\":[{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"709cb38f-fdd9-4105-b11d-4f06cf3562d3\",\"time\":\"2026-10-23T19:02:23.155407+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"data\":{\"firstName\":\"Bruce\",\"lastName\":\"Wayne\",\"age\":40,\"address\":{\"city\":\"Gotham\"}},\"hash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\",\"options\":{}},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/2\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"4aa27657-1551-440c-98a4-ac768a5468f4\",\"time\":\"2026-10-23T19:02:23.155447+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"1c481959d6151ece98d113a41741047f91d18d86d5506c7ee3886b99f54f0b03\",\"data\":{\"firstName\":\"Alfred\",\"lastName\":\"Pennyworth\",\"age\":70,\"address\":{\"city\":\"London\"}},\"hash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\",\"options\":{}},{\"source\":\"io.genesisdb.store\",\"subject\":\"/article/1\",\"type\":\"io.genesisdb.store.article-added\",\"specversion\":\"1.0\",\"id\":\"e3854cf6-2aab-496c-854c-8f77190236b0\",\"time\":\"2026-10-23T19:02:23.218676+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"5c7d155e9c7a9e98ffe901e92581e1e624a2c7382f29c8bec7e702913a36443c\",\"data\":{\"name\":\"Tumbler\",\"price\":2990000.5},\"hash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\",\"options\":{}},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1/address\",\"type\":\"io.genesisdb.app.address-changed\",\"specversion\":\"1.0\",\"id\":\"f90fe2f3-e6b1-418c-bb36-bd924fd9df46\",\"time\":\"2026-10-23T19:02:23.266561+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"fd7f8c2037addda3caef296f8585b43087bfe3d03e51290e0716de5fcb65dbaf\",\"data\":{\"city\":\"Bludhaven\"},\"hash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\",\"options\":{}},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/3\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"2aa92e95-8665-413b-8ad8-95a9da98f142\",\"time\":\"2026-10-23T19:02:23.316487+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"70f679fc02b0199de93bb82c6b5750b0af0f5d5d046a802f16bfe50d3cdac7a5\",\"data\":{},\"hash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\",\"ref\":\"7926cb47b8585281ed1b9afc937ff8f4c94e4c4440e34f3cf3dd55bf5bfaa377\",\"options\":{\"storeDataAsReference\":true}},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/4\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"cd6d89a2-fa6a-4195-9392-35db22905a11\",\"time\":\"2026-10-23T19:02:23.366639+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"b25bbca0f8320f7df526d787bd0be4852edb6c3c46f1ee923d5849084823979c\",\"data\":{},\"hash\":\"09a0443a746c7acae485f9a297c2d9319385cce64310f3ba1a03e62ef10fafcf\",\"ref\":\"1a7b478d48f301eae567f6f54eae378e9d21f9bdd4b1265233289fcedbbeaa38\",\"options\":{}},{\"source\":\"io.genesisdb.app\",\"subject\":\"/order/1\",\"type\":\"io.genesisdb.app.order-placed\",\"specversion\":\"1.0\",\"id\":\"bbcf86fe-4f4f-4e36-afa5-48fb4317d63a\",\"time\":\"2026-10-23T19:02:23.41654+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"09a0443a746c7acae485f9a297c2d9319385cce64310f3ba1a03e62ef10fafcf\",\"data\":{\"amount\":100,\"category\":\"a\"},\"hash\":\"d75f36dbc2f0a343e97bef4d58ca2e8e9203baf1e573d88394c351526cf13a26\",\"options\":{}},{\"source\":\"io.genesisdb.app\",\"subject\":\"/order/2\",\"type\":\"io.genesisdb.app.order-placed\",\"specversion\":\"1.0\",\"id\":\"174c30e0-0846-47a7-a132-7e8bc6fd9357\",\"time\":\"2026-10-23T19:02:23.416549+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"d75f36dbc2f0a343e97bef4d58ca2e8e9203baf1e573d88394c351526cf13a26\",\"data\":{\"amount\":250,\"category\":\"b\"},\"hash\":\"8e8535835f8e82087e5e1471f768326a4f44199462e7cc721e7a48477168fbdb\",\"options\":{}},{\"source\":\"io.genesisdb.app\",\"subject\":\"/order/3\",\"type\":\"io.genesisdb.app.order-placed\",\"specversion\":\"1.0\",\"id\":\"8ce838bc-3507-416c-bfd3-733f013966c8\",\"time\":\"2026-10-23T19:02:23.416551+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"8e8535835f8e82087e5e1471f768326a4f44199462e7cc721e7a48477168fbdb\",\"data\":{\"amount\":50,\"category\":\"a\"},\"hash\":\"00d199c9cc5713cb979435af2d05cef71d161e55b74609ebbdc0a71da19256c4\",\"options\":{}},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/1\",\"type\":\"io.genesisdb.app.customer-renamed\",\"specversion\":\"1.0\",\"id\":\"26892934-f655-436b-a6dc-5aaafe7a20c0\",\"time\":\"2026-10-23T19:02:23.504568+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"00d199c9cc5713cb979435af2d05cef71d161e55b74609ebbdc0a71da19256c4\",\"data\":{\"firstName\":\"Batman\"},\"hash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\",\"options\":{}},{\"source\":\"io.genesisdb.app\",\"subject\":\"/customer/5\",\"type\":\"io.genesisdb.app.customer-added\",\"specversion\":\"1.0\",\"id\":\"41bde6cb-2b9c-4d76-8863-c1781576c9b0\",\"time\":\"2026-10-23T19:02:23.555708+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"36379224997f6fa1b4e088782cffd86adc8b6c4d5cc1a7b414a530a61655dbe4\",\"data\":{},\"hash\":\"5404b4104bdc67f226499d995bb58552a1ab5681ef42b9115716acf4efb7101b\",\"ref\":\"be9ba99b6214eb6f145c124fcd8344318fee3ac79f00eb560818352a9bd8ebba\",\"options\":{\"storeDataAsReference\":true}}],\"refs\":[{\"eventHash\":\"7926cb47b8585281ed1b9afc937ff8f4c94e4c4440e34f3cf3dd55bf5bfaa377\",\"refData\":{\"firstName\":\"Selina\",\"age\":35},\"timestamp\":\"2026-10-23T19:02:23.320464+02:00\"},{\"eventHash\":\"1a7b478d48f301eae567f6f54eae378e9d21f9bdd4b1265233289fcedbbeaa38\",\"refData\":{\"firstName\":\"Diana\",\"age\":30},\"timestamp\":\"2026-10-23T19:02:23.37129+02:00\"},{\"eventHash\":\"be9ba99b6214eb6f145c124fcd8344318fee3ac79f00eb560818352a9bd8ebba\",\"refData\":{\"age\":\"\",\"firstName\":\"\"},\"timestamp\":\"2026-10-23T19:02:23.611679+02:00\"}],\"system\":[{\"source\":\"tag:system.genesisdb.io\",\"subject\":\"/customer/5\",\"type\":\"io.genesisdb.system.ref-erased\",\"specversion\":\"1.0\",\"id\":\"83258a31-25d3-4755-a83e-9ef1993939f5\",\"time\":\"2026-10-23T19:02:23.607804+02:00\",\"datacontenttype\":\"application/json\",\"predecessorhash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"data\":{},\"hash\":\"d656030e0af82267881d87d258eed8d4db10cc1bbb1257cc50760d400e44fe9a\",\"options\":{}}]}\n"
+  },
+  {
+    "name": "audit",
+    "route": "/api/v1/status/audit",
+    "method": "GET",
+    "body": "",
+    "status": 200,
+    "contentType": "text/plain",
+    "response": "Audit passed. All 11 events integrity checks succeeded."
+  },
+  {
+    "name": "schemas",
+    "route": "/api/v1/schema/get",
+    "method": "GET",
+    "body": "",
+    "status": 200,
+    "contentType": "application/x-ndjson",
+    "response": "{\"schema\":{\"allowAdditionalProperties\":true,\"properties\":{\"age\":{\"type\":\"number\"},\"firstName\":{\"required\":true,\"type\":\"string\"}}},\"type\":\"io.genesisdb.app.customer-added\"}\n\n"
+  },
+  {
+    "name": "ping",
+    "route": "/api/v1/status/ping",
+    "method": "GET",
+    "body": "",
+    "status": 200,
+    "contentType": "text/plain",
+    "response": "Pong"
+  },
+  {
+    "name": "commit-precondition-failed",
+    "route": "/api/v1/commit",
+    "method": "POST",
+    "body": "{\"events\":[{\"source\":\"s\",\"subject\":\"/customer/1\",\"type\":\"t\",\"data\":{\"a\":1}}],\"preconditions\":[{\"type\":\"isSubjectNew\",\"payload\":{\"subject\":\"/customer\"}}]}",
+    "status": 412,
+    "contentType": "application/json",
+    "response": "{\"type\":\"isSubjectNew\",\"message\":\"subject /customer already has events\"}\n"
+  },
+  {
+    "name": "commit-query-precondition-failed",
+    "route": "/api/v1/commit",
+    "method": "POST",
+    "body": "{\"events\":[{\"source\":\"s\",\"subject\":\"/x/1\",\"type\":\"t\",\"data\":{\"a\":1}}],\"preconditions\":[{\"type\":\"isQueryResultTrue\",\"payload\":{\"query\":\"STREAM e FROM events WHERE e.subject UNDER '/customer' MAP COUNT() == 0\"}}]}",
+    "status": 412,
+    "contentType": "application/json",
+    "response": "{\"type\":\"isQueryResultTrue\",\"message\":\"query precondition failed: STREAM e FROM events WHERE e.subject UNDER '/customer' MAP COUNT() == 0\"}\n"
+  },
+  {
+    "name": "commit-invalid-subject",
+    "route": "/api/v1/commit",
+    "method": "POST",
+    "body": "{\"events\":[{\"source\":\"s\",\"subject\":\"customer\",\"type\":\"t\",\"data\":{\"a\":1}}]}",
+    "status": 400,
+    "contentType": "text/plain; charset=utf-8",
+    "response": "Event 0: subject must start with /\n"
+  },
+  {
+    "name": "commit-schema-violation",
+    "route": "/api/v1/commit",
+    "method": "POST",
+    "body": "{\"events\":[{\"source\":\"s\",\"subject\":\"/c/1\",\"type\":\"io.genesisdb.app.customer-added\",\"data\":{\"age\":1}}]}",
+    "status": 400,
+    "contentType": "text/plain; charset=utf-8",
+    "response": "Event 0: schema validation failed: required field 'firstName' is missing in event data\n"
+  },
+  {
+    "name": "commit-data-and-ref",
+    "route": "/api/v1/commit",
+    "method": "POST",
+    "body": "{\"events\":[{\"source\":\"s\",\"subject\":\"/c/1\",\"type\":\"t\",\"data\":{\"a\":1},\"ref\":{\"a\":1}}]}",
+    "status": 400,
+    "contentType": "text/plain; charset=utf-8",
+    "response": "Event 0: cannot provide both data and ref\n"
+  },
+  {
+    "name": "restore-not-empty",
+    "route": "/api/v1/backup/restore",
+    "method": "POST",
+    "body": "[]",
+    "status": 409,
+    "contentType": "text/plain; charset=utf-8",
+    "response": "Cannot restore backup: Event store is not empty. Restore can only be performed on an empty event store.\n"
+  },
+  {
+    "name": "erase-not-found",
+    "route": "/api/v1/erase",
+    "method": "POST",
+    "body": "{\"subject\":\"/nothing\"}",
+    "status": 404,
+    "contentType": "text/plain; charset=utf-8",
+    "response": "No events found for subject\n"
+  }
+]

@@ -1,0 +1,265 @@
+name: Release
+
+# A release is triggered by hand from the Actions tab: choose patch or
+# minor. The version is the latest v2.x.y tag with the chosen part
+# incremented, the first release is v2.0.0. A major release is refused: the
+# module path is /v2, a v3 needs a /v3 path and a new repository layout.
+#
+# Nothing is tagged before every gate has passed: lint, race tests, disk-full
+# tests, vulnerability scan, fuzzing, secret scan, cross builds and the
+# container image scan. The tag, the GitHub release with binaries and
+# checksums, and the container images on GitHub Packages and Docker Hub are
+# published in one job at the end.
+#
+# Docker Hub needs the repository secrets DOCKERHUB_USERNAME and
+# DOCKERHUB_TOKEN (an access token with write scope).
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to increment
+        type: choice
+        required: true
+        default: patch
+        options: [patch, minor]
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  GHCR_IMAGE: ghcr.io/${{ github.repository }}
+  DOCKERHUB_IMAGE: genesisdb/genesisdb
+
+jobs:
+  version:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+      tag: ${{ steps.compute.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compute the next version
+        id: compute
+        run: |
+          set -euo pipefail
+          latest="$(git tag --list 'v2.*' --sort=-v:refname | grep -E '^v2\.[0-9]+\.[0-9]+$' | head -n1 || true)"
+          if [ -z "$latest" ]; then
+            version="2.0.0"
+          else
+            IFS=. read -r major minor patch <<<"${latest#v}"
+            case "${{ inputs.bump }}" in
+              minor) version="$major.$((minor + 1)).0" ;;
+              *)     version="$major.$minor.$((patch + 1))" ;;
+            esac
+          fi
+          echo "latest tag: ${latest:-none}, next version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+  gates:
+    needs: version
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: make install-tools
+      - run: make lint
+      - run: make test
+      - name: Disk-full tests on a real 4 MiB volume
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p /tmp/gdbfull
+          sudo mount -t tmpfs -o size=4m,uid=$(id -u),gid=$(id -g) tmpfs /tmp/gdbfull
+          GENESISDB_FULL_VOLUME=/tmp/gdbfull go test -count=1 -run TestDiskFull -v ./packages/store/
+          sudo umount /tmp/gdbfull
+      - run: make vuln
+      - name: Third-party licenses are MIT, BSD, Apache 2.0 or ISC
+        if: runner.os == 'Linux'
+        run: make licenses
+      - run: make fuzz
+      - run: make bench
+      - name: Scan Git history and checkout for secrets
+        run: |
+          gitleaks git --redact --no-banner
+          gitleaks dir --redact --no-banner .
+      - name: Build and check the reported version
+        run: |
+          make build VERSION=${{ needs.version.outputs.version }} CHANNEL=stable
+          ./bin/genesisdb version | tee /dev/stderr | grep -qx "GenesisDB ${{ needs.version.outputs.version }}"
+
+  binaries:
+    needs: [version, gates]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: make release-binaries VERSION=${{ needs.version.outputs.version }} CHANNEL=stable
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: dist/
+          if-no-files-found: error
+
+  image:
+    needs: [version, gates]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the image for scanning (amd64, local)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: genesisdb:scan
+          build-args: |
+            VERSION=${{ needs.version.outputs.version }}
+            CHANNEL=stable
+      - name: Scan the image (OS packages and Go binary)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: genesisdb:scan
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+      - name: Smoke test the image
+        run: |
+          set -euo pipefail
+          docker run --rm genesisdb:scan /app/genesisdb version | grep -qx "GenesisDB ${{ needs.version.outputs.version }}"
+          token="$(openssl rand -hex 32)"
+          cid="$(docker run -d --read-only --tmpfs /app/data:uid=10001,gid=10001,mode=700 -e GENESISDB_AUTH_TOKEN="$token" -p 127.0.0.1:18080:8080 genesisdb:scan)"
+          trap 'docker rm -f "$cid" >/dev/null' EXIT
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:18080/ping >/dev/null 2>&1 && break; sleep 1; done
+          curl -fs http://127.0.0.1:18080/ping | grep -q Pong
+          curl -fs http://127.0.0.1:18080/api/v2/ping | grep -q Pong
+          curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/api/v2/status | grep -qx 401
+          curl -fs -H "Authorization: Bearer $token" http://127.0.0.1:18080/api/v2/status | grep -q '"channel":"stable"'
+          curl -fs -H "Authorization: Bearer $token" http://127.0.0.1:18080/api/v1/status | grep -q '"channel":"stable"'
+          docker exec "$cid" id -u | grep -qx 10001
+      - name: Log in to GitHub Packages
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push the multi-arch image to both registries
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: true
+          sbom: true
+          tags: |
+            ${{ env.GHCR_IMAGE }}:${{ needs.version.outputs.version }}
+            ${{ env.GHCR_IMAGE }}:latest
+            ${{ env.DOCKERHUB_IMAGE }}:${{ needs.version.outputs.version }}
+            ${{ env.DOCKERHUB_IMAGE }}:latest
+          build-args: |
+            VERSION=${{ needs.version.outputs.version }}
+            CHANNEL=stable
+      - name: Record the image digest
+        run: |
+          echo "${{ env.DOCKERHUB_IMAGE }}@${{ steps.push.outputs.digest }}" > image-digest.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-digest
+          path: image-digest.txt
+
+  publish:
+    needs: [version, gates, binaries, image]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: binaries
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: image-digest
+          path: .
+      - name: Release notes
+        run: |
+          set -euo pipefail
+          tag="${{ needs.version.outputs.tag }}"
+          previous="$(git tag --list 'v2.*' --sort=-v:refname | grep -E '^v2\.[0-9]+\.[0-9]+$' | head -n1 || true)"
+          {
+            echo "## GenesisDB ${{ needs.version.outputs.version }}"
+            echo
+            if [ -n "$previous" ]; then
+              echo "Changes since $previous:"
+              echo
+              git log --format='- %s (%h)' "$previous..${{ github.sha }}"
+            else
+              echo "First open source release. See CHANGELOG.md."
+            fi
+            echo
+            echo "### Install"
+            echo
+            echo '```sh'
+            echo "go install github.com/genesisdb-io/genesisdb/v2/cmd/genesisdb@$tag"
+            echo "docker pull ${{ env.DOCKERHUB_IMAGE }}:${{ needs.version.outputs.version }}"
+            echo "docker pull ${{ env.GHCR_IMAGE }}:${{ needs.version.outputs.version }}"
+            echo '```'
+            echo
+            echo "Image digest: \`$(cut -d@ -f2 image-digest.txt)\`"
+            echo
+            echo "SHA-256 checksums of the binaries are in \`SHA256SUMS\`. The licenses of the linked Go modules are in \`THIRD_PARTY_LICENSES\`."
+          } > notes.md
+          cat notes.md
+      - name: Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ needs.version.outputs.tag }}" -m "GenesisDB ${{ needs.version.outputs.version }}" "${{ github.sha }}"
+          git push origin "${{ needs.version.outputs.tag }}"
+      - name: GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: GenesisDB ${{ needs.version.outputs.version }}
+          body_path: notes.md
+          files: |
+            dist/*
+          fail_on_unmatched_files: true
+      - name: Warm the Go module proxy
+        run: |
+          # Asks proxy.golang.org to fetch the new tag, so go install works
+          # immediately and the checksum is recorded in sum.golang.org.
+          curl -fsS "https://proxy.golang.org/github.com/genesisdb-io/genesisdb/v2/@v/${{ needs.version.outputs.tag }}.info" || echo "proxy fetch deferred, it resolves on first go get"

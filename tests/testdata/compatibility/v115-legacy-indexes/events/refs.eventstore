@@ -1,0 +1,4 @@
+eventstore
+{"eventHash":"7926cb47b8585281ed1b9afc937ff8f4c94e4c4440e34f3cf3dd55bf5bfaa377","refData":{"firstName":"Selina","age":35},"timestamp":"2026-10-23T19:02:23.320464+02:00"}
+{"eventHash":"1a7b478d48f301eae567f6f54eae378e9d21f9bdd4b1265233289fcedbbeaa38","refData":{"firstName":"Diana","age":30},"timestamp":"2026-10-23T19:02:23.37129+02:00"}
+{"eventHash":"be9ba99b6214eb6f145c124fcd8344318fee3ac79f00eb560818352a9bd8ebba","refData":{"age":"","firstName":""},"timestamp":"2026-10-23T19:02:23.611679+02:00"}
