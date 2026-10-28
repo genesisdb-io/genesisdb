@@ -30,7 +30,7 @@ An event sourcing database for building event-driven apps, single node, written 
 - logical backup and restore, index rebuild, Prometheus and OpenTelemetry metrics.
 - built-in MCP endpoint: AI agents connect to `/mcp` with the usual tokens, see [docs/mcp.md](docs/mcp.md).
 - embeddable: `store.Open(dir)` gives you the database inside your own Go program, see [docs/engines.md](docs/engines.md).
-- drop-in replacement for the closed source 1.x line: existing data directories migrate on first start, every 1.x backup restores, every 1.x route still answers, see [docs/compatibility.md](docs/compatibility.md).
+- drop-in replacement for the closed source 1.x line: existing data directories migrate on first start, every 1.x backup restores, every 1.x route still answers, see [docs/compatibility.md](docs/compatibility.md). The migration is one-way, so as with every migration a backup of the data directory is mandatory before upgrading.
 
 ## Install
 
@@ -83,7 +83,7 @@ The server binds to `127.0.0.1:8080`, creates `./data` and prints a welcome box 
 
 ```bash
 genesisdb                  # start the server
-genesisdb convert          # migrate a stopped 1.x data directory offline
+genesisdb convert          # migrate a stopped 1.x data directory offline, back it up first
 genesisdb version
 ```
 
@@ -134,7 +134,7 @@ Everything is configured with environment variables, a `.env` file in the workin
 | `GENESISDB_TZ` | system | Event timestamp time zone |
 | `GENESISDB_MEMCACHE` | `true` | Set to `false` to disable event caching |
 | `GENESISDB_MEMCACHE_SIZE` | `10000` | Cache entry count, not a byte limit |
-| `GENESISDB_STORAGE_FORMAT` | `auto` | `auto` migrates a 1.x directory on start, `keep` leaves it in the 1.x format for inspection |
+| `GENESISDB_STORAGE_FORMAT` | `auto` | `auto` migrates a 1.x directory on start (back it up first, the backup is mandatory), `keep` leaves it in the 1.x format for inspection |
 | `GENESISDB_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 | `GENESISDB_METRICS` or `GENESISDB_PROMETHEUS_METRICS` | `false` | Enable Prometheus and optional OTLP metrics |
 | `GENESISDB_METRICS_PORT` | `2112` | Separate Prometheus listener |

@@ -53,7 +53,7 @@ genesisdb convert --data-dir data --dry-run   # list the files
 genesisdb convert --data-dir data             # legacy to current
 ```
 
-The data directory must not be in use. The migration is designed to resume after interruption, subject to filesystem synchronization guarantees:
+The data directory must not be in use. A backup is mandatory: copy the complete stopped directory before the first migration, as with every migration. The migration is one-way and designed to resume after interruption, subject to filesystem synchronization guarantees:
 
 1. Replay the write-ahead log and repair an interrupted final record.
 2. Write `format.gdb` with `"conversion":"in-progress"` and the target format.

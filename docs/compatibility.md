@@ -2,9 +2,11 @@
 
 GenesisDB 2 is the open source successor of the 1.x releases and a drop-in replacement for GenesisDB 1.1.6 and earlier: start it on an existing data directory and it migrates that directory, feed it a 1.x backup and it restores it, keep the existing clients and they keep working. The migration is one-way, 1.x cannot open a migrated directory. The 1.x line receives no further updates.
 
+**A backup is mandatory.** As with every migration, a backup before upgrading is not a recommendation but a requirement. Stop 1.x and copy the complete data directory before GenesisDB 2 starts on it for the first time. Without that copy there is no way back to 1.x.
+
 ## Upgrading a running installation
 
-1. Stop the 1.x process. Take a copy of the data directory if you want a fallback to 1.x, there is no conversion back.
+1. Stop the 1.x process and copy the complete data directory. This backup is mandatory: there is no conversion back to 1.x, and the copy is the only fallback if anything goes wrong.
 2. Set `GENESISDB_AUTH_TOKEN` to a value of at least 32 bytes (`openssl rand -hex 32`). 2.0 enforces this minimum. This is the only configuration change that is required.
 3. Set `GENESISDB_HOST=0.0.0.0` if clients connect from other hosts. 2.0 binds to loopback by default, 1.x bound to all interfaces. The container image already sets this.
 4. Start 2.0 with the same `GENESISDB_DATA_DIR`. The first start migrates the directory and logs what it did. Nothing else has to be run.
@@ -79,7 +81,7 @@ Upgrade the server first, then the clients at any pace. Every `/api/v1` response
 
 `GENESISDB_STORAGE_FORMAT=keep` opens a 1.x directory in place and leaves the file names alone. Reads work normally. New events are written without `hashversion`, so the directory remains readable by 1.x. This mode exists for inspection and for the compatibility tests, not for operation.
 
-`genesisdb convert --data-dir <dir> --dry-run` lists what a migration would change, `genesisdb convert --data-dir <dir>` runs it offline against a stopped directory. The server does the same on start.
+`genesisdb convert --data-dir <dir> --dry-run` lists what a migration would change, `genesisdb convert --data-dir <dir>` runs it offline against a stopped directory. The server does the same on start. Back up the directory before either, the backup is mandatory.
 
 ## Tests
 

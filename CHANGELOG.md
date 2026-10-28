@@ -6,7 +6,7 @@ Release notes with the commits of each version are on the [GitHub releases page]
 
 ## [2.0.0]
 
-The first open source release. GenesisDB 2 is the successor of the 1.x line and a drop-in replacement for it: an existing data directory is migrated automatically on first start, every 1.x backup restores, HTTP routes and responses stay compatible. The migration is one-way. See [docs/compatibility.md](docs/compatibility.md).
+The first open source release. GenesisDB 2 is the successor of the 1.x line and a drop-in replacement for it: an existing data directory is migrated automatically on first start, every 1.x backup restores, HTTP routes and responses stay compatible. The migration is one-way, so a backup of the data directory before upgrading is mandatory, as with every migration. See [docs/compatibility.md](docs/compatibility.md).
 
 ### Added
 - **Open source under MIT.** Every feature is included, there are no editions, license keys or event limits.
