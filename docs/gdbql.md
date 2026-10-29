@@ -69,7 +69,7 @@ STREAM e FROM events WHERE e.type == 'order.placed' MAP { total: SUM(e.data.amou
 STREAM e FROM events WHERE e.type == 'order.placed' GROUP BY e.data.category MAP { orders: COUNT(), total: SUM(e.data.amount) } HAVING COUNT() > 10
 ```
 
-A single aggregate returns a value. Several aggregates return one object. `GROUP BY` returns one object per group that also holds the group field. `COUNT() == n`, `COUNT() > n` and `COUNT() < n` return a boolean, which is useful in preconditions.
+A single aggregate returns a value. Several aggregates return one object. `GROUP BY` returns one object per group, in the order of each group's first event. The group value is stored under the `GROUP BY` expression exactly as written, so `GROUP BY e.data.category MAP { orders: COUNT() }` answers rows like `{"e.data.category": "books", "orders": 3}`. `COUNT() == n`, `COUNT() > n` and `COUNT() < n` return a boolean, which is useful in preconditions.
 
 ## Preconditions
 

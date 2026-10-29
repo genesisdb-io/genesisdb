@@ -189,6 +189,47 @@ func TestCommitFetchQueryAndErase(t *testing.T) {
 	}
 }
 
+// Query answers NDJSON by default. On /api/v2 x-disable-ndjson returns one
+// JSON array like every other list route, /api/v1 stays NDJSON as in 1.1.6.
+func TestQuery_DisableNDJSONOnVersion2Only(t *testing.T) {
+	server, _ := newTestServer(t)
+	send(t, server, http.MethodPost, "/api/v2/commit", `{"events":[{"source":"s","subject":"/a/1","type":"t","data":{"n":1}},{"source":"s","subject":"/a/2","type":"t","data":{"n":2}}]}`).Body.Close()
+	query := func(path, text string, disable bool) (*http.Response, string) {
+		request, _ := http.NewRequest(http.MethodPost, server.URL+path, strings.NewReader(`{"query":"`+text+`"}`))
+		request.Header.Set("Authorization", "Bearer secret")
+		if disable {
+			request.Header.Set("x-disable-ndjson", "true")
+		}
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return response, readBody(t, response)
+	}
+	rows := "STREAM e FROM events MAP { n: e.data.n }"
+
+	response, body := query("/api/v2/query", rows, false)
+	if response.Header.Get("Content-Type") != "application/x-ndjson" || body != "{\"n\":1}\n\n{\"n\":2}\n\n" {
+		t.Fatalf("default must be NDJSON: %q %q", response.Header.Get("Content-Type"), body)
+	}
+	response, body = query("/api/v2/query", rows, true)
+	if response.Header.Get("Content-Type") != "application/json" || strings.TrimSpace(body) != `[{"n":1},{"n":2}]` {
+		t.Fatalf("x-disable-ndjson on v2: %q %q", response.Header.Get("Content-Type"), body)
+	}
+	if _, body = query("/api/v2/query", "STREAM e FROM events MAP COUNT()", true); strings.TrimSpace(body) != "[2]" {
+		t.Fatalf("single value as array: %q", body)
+	}
+	if _, body = query("/api/v2/query", "STREAM e FROM events WHERE e.type == 'none' MAP { n: e.data.n }", true); strings.TrimSpace(body) != "[]" {
+		t.Fatalf("empty result as array: %q", body)
+	}
+	for _, path := range []string{"/api/v1/query", "/api/v1/q"} {
+		response, body = query(path, rows, true)
+		if response.Header.Get("Content-Type") != "application/x-ndjson" || body != "{\"n\":1}\n\n{\"n\":2}\n\n" {
+			t.Fatalf("%s must stay NDJSON: %q %q", path, response.Header.Get("Content-Type"), body)
+		}
+	}
+}
+
 func TestSubscribe_StreamsHistoryNewEventsAndHeartbeats(t *testing.T) {
 	server, _ := newTestServer(t)
 	readBody(t, send(t, server, http.MethodPost, "/api/v2/commit", `{"events":[{"source":"s","subject":"/o/1","type":"t","data":{"n":1}}]}`))

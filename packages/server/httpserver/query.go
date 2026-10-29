@@ -3,6 +3,7 @@ package httpserver
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/genesisdb-io/genesisdb/v2/packages/core"
 	"github.com/genesisdb-io/genesisdb/v2/packages/query"
@@ -29,7 +30,14 @@ func (server *Server) handleQuery(writer http.ResponseWriter, request *http.Requ
 		http.Error(writer, fmt.Sprintf("Failed to execute query: %v", err), httpStatusForError(err))
 		return
 	}
-	writeNDJSON(writer, queryResultItems(result))
+	items := queryResultItems(result)
+	// NDJSON is the default. /api/v2 honors x-disable-ndjson like every other
+	// list route, /api/v1 keeps the NDJSON answer of 1.1.6 unchanged.
+	if strings.HasPrefix(request.URL.Path, v2Prefix+"/") {
+		writeNDJSONOrArray(writer, request, items)
+		return
+	}
+	writeNDJSON(writer, items)
 }
 
 // queryResultItems flattens a query result into NDJSON items. Full events

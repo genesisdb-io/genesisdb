@@ -106,7 +106,7 @@ If a read budget is configured (`GENESISDB_MAX_READ_EVENTS`, `GENESISDB_MAX_READ
 { "query": "STREAM e FROM events WHERE e.subject UNDER '/customer' MAP { id: e.id }" }
 ```
 
-Answers NDJSON. A query that returns a single value (`MAP COUNT()`) answers that value.
+Answers NDJSON by default, one row per line. A query that returns a single value (`MAP COUNT()`) answers that value as its only line. With `x-disable-ndjson: true` the answer is one JSON array instead, also for a single value (`[3]`) and an empty result (`[]`). `/api/v1/query` and `/api/v1/q` always answer NDJSON, as in 1.1.6.
 
 ## Backup and restore
 

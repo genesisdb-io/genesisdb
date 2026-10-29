@@ -148,6 +148,11 @@ func TestProjections_AndAggregates(t *testing.T) {
 	if len(groups) != 1 || groups[0]["c"] != 2 {
 		t.Fatalf("groups %v", groups)
 	}
+	// The group value is stored under the GROUP BY expression exactly as
+	// written, as in 1.1.6. Clients read it as row["e.data.category"].
+	if groups[0]["e.data.category"] != "z" || len(groups[0]) != 2 {
+		t.Fatalf("group key field %v", groups[0])
+	}
 	limited := run(t, newSource(), "STREAM e FROM events LIMIT 2 MAP { id: e.id }").([]Row)
 	if len(limited) != 2 {
 		t.Fatal("LIMIT")
