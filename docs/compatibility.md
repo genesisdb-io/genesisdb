@@ -9,6 +9,7 @@ GenesisDB 2 is the open source successor of the 1.x releases and a drop-in repla
 1. Stop the 1.x process and copy the complete data directory. This backup is mandatory: there is no conversion back to 1.x, and the copy is the only fallback if anything goes wrong.
 2. Set `GENESISDB_AUTH_TOKEN` to a value of at least 32 bytes (`openssl rand -hex 32`). 2.0 enforces this minimum. This is the only configuration change that is required.
 3. Set `GENESISDB_HOST=0.0.0.0` if clients connect from other hosts. 2.0 binds to loopback by default, 1.x bound to all interfaces. The container image already sets this.
+   In a container, mount the volume at `/app/data`. The 2.0 image runs as user 10001 while 1.x ran as root, so hand the files of a 1.x volume over once before the first start, otherwise the migration stops with `permission denied`: `docker run --rm -v <volume>:/app/data alpine chown -R 10001:10001 /app/data`.
 4. Start 2.0 with the same `GENESISDB_DATA_DIR`. The first start migrates the directory and logs what it did. Nothing else has to be run.
 
 ## What the first start migrates

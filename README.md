@@ -30,7 +30,33 @@ An event sourcing database for building event-driven apps, single node, written 
 - logical backup and restore, index rebuild, Prometheus and OpenTelemetry metrics.
 - built-in MCP endpoint: AI agents connect to `/mcp` with the usual tokens, see [docs/mcp.md](docs/mcp.md).
 - embeddable: `store.Open(dir)` gives you the database inside your own Go program, see [docs/engines.md](docs/engines.md).
-- drop-in replacement for the closed source 1.x line: existing data directories migrate on first start, every 1.x backup restores, every 1.x route still answers, see [docs/compatibility.md](docs/compatibility.md). The migration is one-way, so as with every migration a backup of the data directory is mandatory before upgrading.
+- drop-in replacement for the closed source 1.x line, see [GenesisDB 2.0 and 1.x](#genesisdb-20-and-1x).
+
+## GenesisDB 2.0 and 1.x
+
+GenesisDB 2.0 is the first open source release and the successor of the closed source 1.x line. It is a drop-in replacement for 1.1.6 and earlier.
+
+| | Compatible with 2.0 |
+|---|---|
+| 1.x data directories | Yes, migrated automatically on first start |
+| 1.x backups | Yes, both backup forms restore unchanged |
+| 1.x clients and SDKs | Yes, the 1.x API stays under `/api/v1`, unchanged and frozen |
+| 2.0 SDKs against a 1.x server | No, they use `/api/v2` |
+| 2.0 data directories or backups in 1.x | No, the migration is one-way |
+
+**A backup is mandatory before upgrading.** As with every migration, stop 1.x and copy the complete data directory before 2.0 starts on it for the first time. Without that copy there is no way back to 1.x.
+
+Four things change for an existing installation:
+
+- `GENESISDB_AUTH_TOKEN` must have at least 32 bytes. Generate one with `openssl rand -hex 32`.
+- The server binds to `127.0.0.1` by default. Set `GENESISDB_HOST=0.0.0.0` for remote clients. The container image already does.
+- In the container image, the data directory is `/app/data`. Mount volumes there.
+- The container runs as user 10001, 1.x ran as root. Before the first start of 2.0 on a volume written by 1.x, hand the files over once, otherwise the migration stops with `permission denied`:
+  ```bash
+  docker run --rm -v <volume>:/app/data alpine chown -R 10001:10001 /app/data
+  ```
+
+Upgrade the server first and move clients to the 2.0 SDKs at your own pace. New features such as stored events returned by commit, upper fetch bounds and typed errors need a 2.0 SDK. Every v1 response carries `Deprecation: true` and a `Link` to its v2 successor. Steps, migration details and the route mapping are in [docs/compatibility.md](docs/compatibility.md).
 
 ## Install
 
