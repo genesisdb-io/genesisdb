@@ -141,7 +141,7 @@ jobs:
             VERSION=${{ needs.version.outputs.version }}
             CHANNEL=stable
       - name: Scan the image (OS packages and Go binary)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: genesisdb:scan
           format: table
