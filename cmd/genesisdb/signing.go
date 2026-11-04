@@ -51,6 +51,28 @@ func loadTrustedSigningKeys(value string) ([]core.SigningPublicKey, error) {
 	return keys, nil
 }
 
+// loadRevokedSigningKeys reads GENESISDB_REVOKED_SIGNING_KEYS: a comma
+// separated list of "<key id>" (every signature of the key is revoked) or
+// "<key id>:<event hash>" (signatures up to and including that event stay
+// trusted).
+func loadRevokedSigningKeys(value string) ([]core.SigningKeyRevocation, error) {
+	var revocations []core.SigningKeyRevocation
+	for _, item := range strings.Split(value, ",") {
+		if strings.TrimSpace(item) == "" {
+			continue
+		}
+		revocation, err := core.ParseSigningKeyRevocation(item)
+		if err != nil {
+			return nil, err
+		}
+		revocations = append(revocations, revocation)
+	}
+	if _, err := core.NewSigningKeyRevocations(revocations); err != nil {
+		return nil, err
+	}
+	return revocations, nil
+}
+
 // runVerify implements "genesisdb verify". Exit code 0 means the chain and
 // every signature verified, 1 an integrity problem, 2 a usage or read error.
 // With -require-signatures, unsigned events and events signed by an
@@ -59,7 +81,8 @@ func runVerify(arguments []string, logger *slog.Logger) int {
 	flags := flag.NewFlagSet("verify", flag.ContinueOnError)
 	dataDirectory := flags.String("data-dir", os.Getenv("GENESISDB_DATA_DIR"), "stopped data directory to verify (default: GENESISDB_DATA_DIR or ./data)")
 	trusted := flags.String("trusted-keys", os.Getenv("GENESISDB_TRUSTED_SIGNING_KEYS"), "comma separated trusted public keys, files or base64 (default: the keys recorded in the directory)")
-	requireSignatures := flags.Bool("require-signatures", false, "fail unless every event is signed by a trusted key")
+	revoked := flags.String("revoked-keys", os.Getenv("GENESISDB_REVOKED_SIGNING_KEYS"), "comma separated revoked keys, <key id> or <key id>:<last trusted event hash>")
+	requireSignatures := flags.Bool("require-signatures", false, "fail unless every event is signed by a trusted, unrevoked key")
 	if err := flags.Parse(arguments); err != nil {
 		return 2
 	}
@@ -71,19 +94,24 @@ func runVerify(arguments []string, logger *slog.Logger) int {
 		logger.Error("invalid trusted keys", "error", err)
 		return 2
 	}
-	report, err := store.VerifyStoppedDirectory(context.Background(), *dataDirectory, keys)
+	revocations, err := loadRevokedSigningKeys(*revoked)
+	if err != nil {
+		logger.Error("invalid revoked keys", "error", err)
+		return 2
+	}
+	report, err := store.VerifyStoppedDirectory(context.Background(), *dataDirectory, keys, revocations)
 	if err != nil {
 		logger.Error("verification could not run", "error", err)
 		return 2
 	}
 	fmt.Printf("Events: %d (%d with legacy hashes)\n", report.CheckedEvents, report.LegacyEvents)
-	fmt.Printf("Signatures: %d valid, %d unsigned, %d signed by an untrusted key\n", report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents)
+	fmt.Printf("Signatures: %d valid, %d unsigned, %d signed by an untrusted key, %d signed by a revoked key\n", report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents, report.RevokedEvents)
 	if !report.IsValid() {
 		fmt.Println("FAILED: " + report.Problem)
 		return 1
 	}
-	if *requireSignatures && (report.UnsignedEvents > 0 || report.UnknownKeyEvents > 0) {
-		fmt.Println("FAILED: not every event is signed by a trusted key")
+	if *requireSignatures && (report.UnsignedEvents > 0 || report.UnknownKeyEvents > 0 || report.RevokedEvents > 0) {
+		fmt.Println("FAILED: not every event is signed by a trusted, unrevoked key")
 		return 1
 	}
 	fmt.Println("OK")

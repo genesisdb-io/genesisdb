@@ -126,6 +126,7 @@ func runServer(logger *slog.Logger) error {
 		Logger:                    logger,
 		Signer:                    config.Signer,
 		TrustedSigningKeys:        config.TrustedSigningKeys,
+		RevokedSigningKeys:        config.RevokedSigningKeys,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to open the data directory: %w", err)

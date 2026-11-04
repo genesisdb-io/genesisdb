@@ -170,6 +170,7 @@ Everything is configured with environment variables, a `.env` file in the workin
 | `GENESISDB_MCP` | `false` | Serve the MCP endpoint for AI agents at `/mcp` |
 | `GENESISDB_SIGNING_KEY` | disabled | Ed25519 private key (PKCS#8) that signs new events, a file path or the file content in base64 |
 | `GENESISDB_TRUSTED_SIGNING_KEYS` | recorded keys | Comma separated public keys the audit trusts, see [docs/signatures.md](docs/signatures.md) |
+| `GENESISDB_REVOKED_SIGNING_KEYS` | none | Comma separated compromised keys, `<key id>` or `<key id>:<last trusted event hash>` |
 
 OTLP export additionally requires `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`. Standard `OTEL_*` settings apply. Metrics endpoints are unauthenticated and must remain on a trusted network. Metric cardinality is bounded: subjects are never exported as labels, and at most 256 distinct event types get their own label value.
 

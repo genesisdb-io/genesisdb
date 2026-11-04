@@ -61,11 +61,11 @@ func (s *Store) VerifyHashChain(ctx context.Context) (*storage.HashChainReport, 
 	}
 	s.maintenanceMutex.RLock()
 	defer s.maintenanceMutex.RUnlock()
-	keys, err := s.verificationKeys()
+	trust, err := s.signatureTrust()
 	if err != nil {
 		return nil, err
 	}
-	return s.storage.VerifyHashChainAndSignatures(ctx, keys)
+	return s.storage.VerifyHashChainAndSignatures(ctx, trust)
 }
 
 // Backup returns a logical backup. Payloads stored as reference data are

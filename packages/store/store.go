@@ -77,6 +77,10 @@ type Options struct {
 	// with. Empty uses the keys recorded in the data directory, which
 	// detects damage but not a writer of the directory who adds a key.
 	TrustedSigningKeys []core.SigningPublicKey
+	// RevokedSigningKeys withdraws trust from compromised keys. They are
+	// configured, not stored in the data directory, so a writer of the
+	// directory cannot lift a revocation. Signer must not be revoked.
+	RevokedSigningKeys []core.SigningKeyRevocation
 }
 
 // Store is an open GenesisDB data directory. It is safe for concurrent use.
@@ -100,6 +104,7 @@ type Store struct {
 	evaluateGDBQLPrecondition core.GDBQLPreconditionEvaluator
 	signer                    *core.EventSigner
 	trustedSigningKeys        []core.SigningPublicKey
+	revokedSigningKeys        core.SigningKeyRevocations
 
 	writeMutex       sync.Mutex
 	maintenanceMutex sync.RWMutex
@@ -131,6 +136,14 @@ func Open(dataDirectory string, options Options) (*Store, error) {
 	if _, err := core.NewSigningKeySet(s.trustedSigningKeys); err != nil {
 		lock.Unlock()
 		return nil, err
+	}
+	if s.revokedSigningKeys, err = core.NewSigningKeyRevocations(options.RevokedSigningKeys); err != nil {
+		lock.Unlock()
+		return nil, err
+	}
+	if s.signer != nil && s.revokedSigningKeys.IsRevoked(s.signer.PublicKey().KeyID) {
+		lock.Unlock()
+		return nil, fmt.Errorf("%w: the signing key %s is revoked, configure a new key", core.ErrInvalidSigningKey, s.signer.PublicKey().KeyID)
 	}
 	if options.CacheSize >= 0 {
 		s.cache = cache.New[core.RecordLocation, *core.Event](cache.Options[*core.Event]{

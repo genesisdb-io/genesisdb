@@ -96,3 +96,42 @@ func TestSigning_UnsignedStoreAnswersAsBefore(t *testing.T) {
 		t.Fatalf("signing keys %s", keys)
 	}
 }
+
+func TestSigning_AuditReportsRevokedSignatures(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	directory := t.TempDir()
+	leaked, err := core.NewEventSigner(ed25519.NewKeyFromSeed(make([]byte, ed25519.SeedSize)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err := store.Open(directory, store.Options{Logger: logger, Signer: leaked})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Commit(t.Context(), []*core.Event{{Source: "s", Subject: "/a/1", Type: "t", Data: json.RawMessage(`{}`)}}); err != nil {
+		t.Fatal(err)
+	}
+	s.Close()
+
+	revocation := core.SigningKeyRevocation{KeyID: leaked.PublicKey().KeyID}
+	s, err = store.Open(directory, store.Options{Logger: logger, RevokedSigningKeys: []core.SigningKeyRevocation{revocation}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(New(s, Options{AuthToken: "secret", Logger: logger}).Routes())
+	t.Cleanup(func() {
+		server.Close()
+		s.Close()
+	})
+	audit := readBody(t, send(t, server, http.MethodGet, "/api/v2/admin/audit", ""))
+	if !strings.Contains(audit, "Audit passed") || !strings.HasSuffix(audit, "Signatures: 0 valid, 0 unsigned, 0 signed by an untrusted key, 1 signed by a revoked key.") {
+		t.Fatalf("audit %q", audit)
+	}
+	var keys SigningKeysResponse
+	if err := json.Unmarshal([]byte(readBody(t, send(t, server, http.MethodGet, "/api/v2/signing-keys", ""))), &keys); err != nil {
+		t.Fatal(err)
+	}
+	if len(keys.Revoked) != 1 || keys.Revoked[0] != revocation {
+		t.Fatalf("revocations %+v", keys)
+	}
+}

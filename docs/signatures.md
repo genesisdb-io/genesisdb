@@ -16,6 +16,7 @@ export GENESISDB_SIGNING_KEY="$(base64 < signing.pem | tr -d '\n')"  # or the fi
 |---|---|---|
 | `GENESISDB_SIGNING_KEY` | disabled | Ed25519 private key in PKCS#8 (PEM or DER), as a file path or the file content in base64 |
 | `GENESISDB_TRUSTED_SIGNING_KEYS` | recorded keys | Comma separated public keys the audit trusts: file paths (PEM or DER), raw 32 byte keys in base64, or PEM/DER files in base64 |
+| `GENESISDB_REVOKED_SIGNING_KEYS` | none | Comma separated revoked keys, `<key id>` or `<key id>:<event hash>`, see [compromised keys](#compromised-keys) |
 
 An invalid key stops the start. The key value is never logged, the log shows the key ID only.
 
@@ -56,6 +57,35 @@ The public key of every key that committed is recorded in `signing-keys.json` in
 
 `signing-keys.json` lives in the data directory. Whoever can write the directory can add a key and sign a rewritten history with it. The recorded keys therefore detect damage and identify keys, they do not establish trust. Pin the keys you trust outside the directory with `GENESISDB_TRUSTED_SIGNING_KEYS` or `genesisdb verify --trusted-keys`: signatures of any other key are then reported as signed by an untrusted key. Keep the private key off the database host's data volume, in a secret store, and with access for the GenesisDB process only.
 
+## Compromised keys
+
+A leaked private key can sign events that were never committed. Rotating to a new key stops new signatures with the old one, but the old key stays in `signing-keys.json`, so its signatures would still count as valid. Revoke it:
+
+```sh
+# every signature of the key loses trust
+GENESISDB_REVOKED_SIGNING_KEYS=c0e1c5b3695965d2
+
+# signatures up to and including the event with this hash stay trusted
+GENESISDB_REVOKED_SIGNING_KEYS=c0e1c5b3695965d2:2ea4890411aa0ab02e4d0aa2efff0b70ec0b7d75e516e281ca33eb7ee237f60a
+```
+
+The revocation point is the hash of the last event you still trust, for example the newest event before the leak, taken from an external checkpoint or backup. Signatures of the key on later events count as revoked, the audit reports them separately and they prove nothing. Events of other keys are unaffected.
+
+The revocation point is also a checkpoint: if no event of the log has that hash, the history before it was changed and the audit fails.
+
+Revocations are configuration, not data. They are not written to the data directory or to backups, so a writer of the directory cannot lift them. Pass the same value to `genesisdb verify --revoked-keys`, or set the variable for it. A revoked key cannot be the signing key: the start fails until a new key is configured.
+
+After a leak:
+
+1. Generate a new key and configure it as `GENESISDB_SIGNING_KEY`.
+2. Revoke the old key with the hash of the last trusted event.
+3. Pin the new public key in `GENESISDB_TRUSTED_SIGNING_KEYS` together with the old one, the old one still verifies events before the revocation point.
+4. Restart and run the audit. Events counted as signed by a revoked key need review.
+
+`GET /api/v2/signing-keys` lists the configured revocations under `revoked`.
+
+## Limits
+
 A signature does not prove that an event is complete: removing the newest events is not detected by signatures alone. Keep external checkpoints (ID and hash of the latest event) if truncation matters.
 
 ## Verification
@@ -67,13 +97,15 @@ Audit passed. All 2 events integrity checks succeeded.
 Signatures: 2 valid, 0 unsigned, 0 signed by an untrusted key.
 ```
 
+With revoked signatures the line ends with `, 1 signed by a revoked key.`
+
 `genesisdb verify` performs the same check on a stopped data directory without changing a byte: no write-ahead log replay, no migration, no index rebuild.
 
 ```sh
-genesisdb verify --data-dir data --trusted-keys signing.pub.pem --require-signatures
+genesisdb verify --data-dir data --trusted-keys signing.pub.pem --revoked-keys c0e1c5b3695965d2:<hash> --require-signatures
 ```
 
-Exit code 0 means valid, 1 an integrity problem (or with `--require-signatures` an unsigned or untrusted event), 2 a usage or read error.
+Exit code 0 means valid, 1 an integrity problem (or with `--require-signatures` an unsigned, untrusted or revoked signature), 2 a usage or read error.
 
 ## Compatibility
 

@@ -92,42 +92,61 @@ func (s *Store) registerSigningKeys(keys []core.SigningPublicKey) error {
 	return fsutil.ReplaceAtomically(s.signingKeysPath(), append(encoded, '\n'), nil, nil, s.faults)
 }
 
-// verificationKeys returns the keys signatures are checked with: the pinned
+// signatureTrust returns what signatures are checked against: the pinned
 // trusted keys if any were configured, otherwise the keys recorded in the
-// data directory. Without any key the set is empty, so signed events are
-// counted as signed by an unknown key rather than silently accepted.
-func (s *Store) verificationKeys() (core.SigningKeySet, error) {
-	keys := s.trustedSigningKeys
+// data directory, and the configured revocations. Without any key the set is
+// empty, so signed events are counted as signed by an unknown key rather
+// than silently accepted.
+func (s *Store) signatureTrust() (*core.SignatureTrust, error) {
+	return newSignatureTrust(s.dataDirectory, s.trustedSigningKeys, s.revokedSigningKeys)
+}
+
+func newSignatureTrust(dataDirectory string, trusted []core.SigningPublicKey, revocations core.SigningKeyRevocations) (*core.SignatureTrust, error) {
+	keys := trusted
 	if len(keys) == 0 {
-		recorded, err := s.SigningKeys()
+		recorded, err := ReadSigningKeys(dataDirectory)
 		if err != nil {
 			return nil, err
 		}
 		keys = recorded
 	}
-	return core.NewSigningKeySet(keys)
+	set, err := core.NewSigningKeySet(keys)
+	if err != nil {
+		return nil, err
+	}
+	return &core.SignatureTrust{Keys: set, Revocations: revocations}, nil
 }
 
 // VerifyStoppedDirectory checks the hash chain and every signature of a data
 // directory that no process uses, without changing a byte. Signatures are
-// checked against trusted if given, otherwise against the recorded keys.
-func VerifyStoppedDirectory(ctx context.Context, dataDirectory string, trusted []core.SigningPublicKey) (*storage.HashChainReport, error) {
+// checked against trusted if given, otherwise against the recorded keys,
+// and signatures of revoked keys after their revocation point are not
+// trusted.
+func VerifyStoppedDirectory(ctx context.Context, dataDirectory string, trusted []core.SigningPublicKey, revoked []core.SigningKeyRevocation) (*storage.HashChainReport, error) {
+	revocations, err := core.NewSigningKeyRevocations(revoked)
+	if err != nil {
+		return nil, err
+	}
 	lock, err := fsutil.LockDirectory(dataDirectory)
 	if err != nil {
 		return nil, err
 	}
 	defer lock.Unlock()
-	keys := trusted
-	if len(keys) == 0 {
-		if keys, err = ReadSigningKeys(dataDirectory); err != nil {
-			return nil, err
-		}
-	}
-	set, err := core.NewSigningKeySet(keys)
+	trust, err := newSignatureTrust(dataDirectory, trusted, revocations)
 	if err != nil {
 		return nil, err
 	}
-	return storage.VerifyDirectory(ctx, dataDirectory, set)
+	return storage.VerifyDirectory(ctx, dataDirectory, trust)
+}
+
+// RevokedSigningKeys returns the configured revocations sorted by key ID.
+func (s *Store) RevokedSigningKeys() []core.SigningKeyRevocation {
+	var revocations []core.SigningKeyRevocation
+	for keyID, validThrough := range s.revokedSigningKeys {
+		revocations = append(revocations, core.SigningKeyRevocation{KeyID: keyID, ValidThroughHash: validThrough})
+	}
+	sort.Slice(revocations, func(i, j int) bool { return revocations[i].KeyID < revocations[j].KeyID })
+	return revocations
 }
 
 // ActiveSigningKey returns the public key new events are signed with, or

@@ -58,6 +58,30 @@ func TestConfig_SigningKeyFromFileOrBase64(t *testing.T) {
 	}
 }
 
+func TestConfig_RevokedSigningKeys(t *testing.T) {
+	hash := strings.Repeat("ab", 32)
+	lookup := func(environment map[string]string) func(string) (string, bool) {
+		return func(name string) (string, bool) { v, ok := environment[name]; return v, ok }
+	}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	config, err := loadConfig(lookup(map[string]string{
+		"GENESISDB_AUTH_TOKEN":           strings.Repeat("a", 32),
+		"GENESISDB_REVOKED_SIGNING_KEYS": "0123456789abcdef, fedcba9876543210:" + hash,
+	}), logger)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(config.RevokedSigningKeys) != 2 || config.RevokedSigningKeys[1].ValidThroughHash != hash {
+		t.Fatalf("%+v", config.RevokedSigningKeys)
+	}
+	for _, value := range []string{"nope", "0123456789abcdef:", "0123456789abcdef,0123456789abcdef"} {
+		_, err := loadConfig(lookup(map[string]string{"GENESISDB_AUTH_TOKEN": strings.Repeat("a", 32), "GENESISDB_REVOKED_SIGNING_KEYS": value}), logger)
+		if err == nil || !strings.Contains(err.Error(), "GENESISDB_REVOKED_SIGNING_KEYS") {
+			t.Errorf("%q: %v", value, err)
+		}
+	}
+}
+
 func TestConfig_InvalidSigningKeyStopsTheStart(t *testing.T) {
 	for _, value := range []string{"/does/not/exist", "bm90IGEga2V5", "%%%"} {
 		environment := map[string]string{"GENESISDB_AUTH_TOKEN": strings.Repeat("a", 32), "GENESISDB_SIGNING_KEY": value}

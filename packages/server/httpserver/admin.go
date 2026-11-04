@@ -27,7 +27,7 @@ func (server *Server) handleVerifyHashChain(writer http.ResponseWriter, request 
 	writer.Header().Set("Content-Type", "text/plain")
 	if report.IsValid() {
 		fmt.Fprintf(writer, "Audit passed. All %d events integrity checks succeeded.", eventCount)
-		writeSignatureSummary(writer, request, report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents)
+		writeSignatureSummary(writer, request, report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents, report.RevokedEvents)
 		return
 	}
 	// The violation is reported once per subject, as in earlier releases.
@@ -35,17 +35,22 @@ func (server *Server) handleVerifyHashChain(writer http.ResponseWriter, request 
 	for _, subject := range report.Subjects {
 		fmt.Fprintf(writer, "- Subject %s: %s\n", subject, report.Problem)
 	}
-	writeSignatureSummary(writer, request, report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents)
+	writeSignatureSummary(writer, request, report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents, report.RevokedEvents)
 }
 
 // writeSignatureSummary appends the signature counts to an audit answer of
 // /api/v2 when the store holds signed events. Stores without signatures and
-// the frozen /api/v1 answer exactly as before.
-func writeSignatureSummary(writer http.ResponseWriter, request *http.Request, signed, unsigned, unknownKey int) {
-	if !isVersion2Request(request) || signed+unknownKey == 0 {
+// the frozen /api/v1 answer exactly as before. Revoked signatures are only
+// mentioned when there are any.
+func writeSignatureSummary(writer http.ResponseWriter, request *http.Request, signed, unsigned, unknownKey, revoked int) {
+	if !isVersion2Request(request) || signed+unknownKey+revoked == 0 {
 		return
 	}
-	fmt.Fprintf(writer, "\nSignatures: %d valid, %d unsigned, %d signed by an untrusted key.", signed, unsigned, unknownKey)
+	fmt.Fprintf(writer, "\nSignatures: %d valid, %d unsigned, %d signed by an untrusted key", signed, unsigned, unknownKey)
+	if revoked > 0 {
+		fmt.Fprintf(writer, ", %d signed by a revoked key", revoked)
+	}
+	fmt.Fprint(writer, ".")
 }
 
 // SigningKeysResponse is the body of GET /api/v2/signing-keys.
@@ -54,6 +59,8 @@ type SigningKeysResponse struct {
 	// is off.
 	Active string                  `json:"active"`
 	Keys   []core.SigningPublicKey `json:"keys"`
+	// Revoked lists the configured revocations, omitted when there are none.
+	Revoked []core.SigningKeyRevocation `json:"revoked,omitempty"`
 }
 
 func (server *Server) handleListSigningKeys(writer http.ResponseWriter, request *http.Request) {
@@ -69,6 +76,7 @@ func (server *Server) handleListSigningKeys(writer http.ResponseWriter, request 
 	if key, isSigning := server.store.ActiveSigningKey(); isSigning {
 		response.Active = key.KeyID
 	}
+	response.Revoked = server.store.RevokedSigningKeys()
 	writeJSON(writer, http.StatusOK, response)
 }
 

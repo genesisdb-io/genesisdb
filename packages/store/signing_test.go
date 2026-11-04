@@ -225,7 +225,7 @@ func TestSigning_ForgedSignatureIsDetected(t *testing.T) {
 	if report := verifyChain(t, s); report.Problem != "" || report.UnknownKey != 1 || report.Signed != 1 {
 		t.Fatalf("pinned keys must not trust the attacker: %+v", report)
 	}
-	if report, err := VerifyStoppedDirectory(context.Background(), directory, nil); err == nil {
+	if report, err := VerifyStoppedDirectory(context.Background(), directory, nil, nil); err == nil {
 		t.Fatalf("directory is in use, offline verify must refuse: %+v", report)
 	}
 }
@@ -237,7 +237,7 @@ func TestSigning_OfflineVerifyIsReadOnly(t *testing.T) {
 	commitTestEvent(t, s, "/a", "t")
 	s.Close()
 	before := snapshotDirectory(t, directory)
-	report, err := VerifyStoppedDirectory(context.Background(), directory, []core.SigningPublicKey{signer.PublicKey()})
+	report, err := VerifyStoppedDirectory(context.Background(), directory, []core.SigningPublicKey{signer.PublicKey()}, nil)
 	if err != nil || !report.IsValid() || report.SignedEvents != 1 {
 		t.Fatalf("%+v %v", report, err)
 	}

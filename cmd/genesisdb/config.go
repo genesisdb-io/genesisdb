@@ -50,6 +50,8 @@ type Config struct {
 	Signer *core.EventSigner
 	// TrustedSigningKeys pin the public keys the audit trusts.
 	TrustedSigningKeys []core.SigningPublicKey
+	// RevokedSigningKeys withdraw trust from compromised keys.
+	RevokedSigningKeys []core.SigningKeyRevocation
 }
 
 // Environment variables that earlier releases understood and that are gone.
@@ -182,6 +184,9 @@ func loadConfig(lookup func(string) (string, bool), logger *slog.Logger) (*Confi
 	}
 	if config.TrustedSigningKeys, err = loadTrustedSigningKeys(value("GENESISDB_TRUSTED_SIGNING_KEYS", "")); err != nil {
 		return nil, fmt.Errorf("GENESISDB_TRUSTED_SIGNING_KEYS: %w", err)
+	}
+	if config.RevokedSigningKeys, err = loadRevokedSigningKeys(value("GENESISDB_REVOKED_SIGNING_KEYS", "")); err != nil {
+		return nil, fmt.Errorf("GENESISDB_REVOKED_SIGNING_KEYS: %w", err)
 	}
 	for _, name := range removedVariables {
 		if _, isSet := lookup(name); isSet {

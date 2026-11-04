@@ -25,8 +25,11 @@ type HashChainReport struct {
 	// UnknownKeyEvents carry a signature of a key that is not in the key
 	// set. Their signature proves nothing.
 	UnknownKeyEvents int
-	Subjects         []string
-	Problem          string
+	// RevokedEvents carry a signature of a revoked key, made after its
+	// revocation point. Their signature proves nothing.
+	RevokedEvents int
+	Subjects      []string
+	Problem       string
 }
 
 func (report *HashChainReport) IsValid() bool { return report.Problem == "" }
@@ -35,7 +38,7 @@ func (report *HashChainReport) IsValid() bool { return report.Problem == "" }
 // directory without changing anything: no write-ahead log replay, no tail
 // repair, no migration. A directory left by a crash may therefore report an
 // incomplete final record that the next start would repair.
-func VerifyDirectory(ctx context.Context, dataDirectory string, keys core.SigningKeySet) (*HashChainReport, error) {
+func VerifyDirectory(ctx context.Context, dataDirectory string, trust *core.SignatureTrust) (*HashChainReport, error) {
 	eventsDirectory := filepath.Join(dataDirectory, layout.EventsDirectory)
 	format := layout.FormatCurrent
 	if _, err := os.Stat(filepath.Join(eventsDirectory, format.MainEventLogFile())); errors.Is(err, os.ErrNotExist) {
@@ -45,7 +48,7 @@ func VerifyDirectory(ctx context.Context, dataDirectory string, keys core.Signin
 		return nil, fmt.Errorf("no event log in %s: %w", eventsDirectory, err)
 	}
 	engine := &Engine{eventsDirectory: eventsDirectory, format: format}
-	return engine.VerifyHashChainAndSignatures(ctx, keys)
+	return engine.VerifyHashChainAndSignatures(ctx, trust)
 }
 
 func (engine *Engine) VerifyHashChain() (*HashChainReport, error) {
@@ -65,15 +68,21 @@ func (engine *Engine) VerifyHashChainContext(ctx context.Context) (*HashChainRep
 // With a key set every signature is verified as well, on all cores while the
 // scan continues. A signature that does not verify with its key, or is
 // malformed, is a problem. Signatures of keys outside the set and unsigned
-// events are counted, not rejected. A nil key set skips signatures.
-func (engine *Engine) VerifyHashChainAndSignatures(ctx context.Context, keys core.SigningKeySet) (*HashChainReport, error) {
+// events are counted, not rejected. A nil trust skips signatures.
+//
+// Signatures of a revoked key after its revocation point are counted as
+// revoked and not checked. A revocation point that no event of the log has
+// is a problem: the history before it was changed.
+func (engine *Engine) VerifyHashChainAndSignatures(ctx context.Context, trust *core.SignatureTrust) (*HashChainReport, error) {
 	report := &HashChainReport{}
 	subjects := map[string]bool{}
 	previous := core.ZeroHash
 	upgraded := false
 	var verifier *signatureVerifier
-	if keys != nil {
-		verifier = newSignatureVerifier(keys)
+	var revocations *core.RevocationTracker
+	if trust != nil {
+		verifier = newSignatureVerifier(trust.Keys)
+		revocations = core.NewRevocationTracker(trust.Revocations)
 	}
 	position := 0
 	_, _, err := engine.ScanEventLog(engine.MainEventLogFile(), 0, func(stored core.StoredEvent) error {
@@ -102,9 +111,16 @@ func (engine *Engine) VerifyHashChainAndSignatures(ctx context.Context, keys cor
 		} else {
 			report.LegacyEvents++
 		}
-		if event.Signature == "" {
+		switch {
+		case event.Signature == "":
 			report.UnsignedEvents++
-		} else if verifier != nil {
+			if revocations != nil {
+				revocations.IsRevokedAt(event)
+			}
+		case verifier == nil:
+		case revocations.IsRevokedAt(event):
+			report.RevokedEvents++
+		default:
 			verifier.add(position, event)
 		}
 		previous = event.Hash
@@ -116,6 +132,9 @@ func (engine *Engine) VerifyHashChainAndSignatures(ctx context.Context, keys cor
 		report.UnknownKeyEvents = verifier.unknownKeyCount
 		if err == nil && report.Problem == "" && firstInvalid >= 0 {
 			report.Problem = fmt.Sprintf("Event %s has an invalid signature", invalidID)
+		}
+		if missing := revocations.MissingRevocationPoints(); err == nil && report.Problem == "" && len(missing) > 0 {
+			report.Problem = fmt.Sprintf("No event has hash %s, the revocation point of key %s", missing[0].ValidThroughHash, missing[0].KeyID)
 		}
 	}
 	if err != nil {
