@@ -40,6 +40,9 @@ func (engine *Engine) AppendSystemEvent(eventType, subject string, data json.Raw
 		event.HashVersion = core.CurrentHashVersion
 	}
 	event.Hash = core.HashEvent(event)
+	if engine.signer != nil {
+		event.Signature = engine.signer.SignHash(event.Hash)
+	}
 
 	line, err := EncodeEventLine(event)
 	if err != nil {

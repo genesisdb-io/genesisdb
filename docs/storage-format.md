@@ -20,6 +20,7 @@ The event logs under `events/` are the authoritative data. Everything under `ind
     latest-event-of-type/00.gdb ... ff.gdb
     events-by-id/00.gdb ... ff.gdb
   schemas/type-<sha256 of exact event type>.json
+  signing-keys.json              public keys of event signatures, only once a key was configured
   wal/pending.wal                batch of the commit in flight
 ```
 
@@ -65,13 +66,15 @@ The data directory must not be in use. A backup is mandatory: copy the complete 
 
 Every log starts with its header line followed by one JSON record per line.
 
-- Event logs: `{"event":{...}}` with the fields `source`, `subject`, `type`, `specversion`, `id`, `time`, `datacontenttype`, `predecessorhash`, `data`, `hash`, `ref` (optional), `options`.
+- Event logs: `{"event":{...}}` with the fields `source`, `subject`, `type`, `specversion`, `id`, `time`, `datacontenttype`, `predecessorhash`, `data`, `hash`, `ref` (optional), `options`, `signature` (optional, current format only).
 - Reference data log: `{"eventHash":"<ref>","refData":{...},"timestamp":"..."}`.
 - System event log: like the event log, with its own hash chain and the source `tag:system.genesisdb.io`.
 
 ## Hash chain
 
 New current-format events use hash version 3. Their SHA-256 digest binds a version tag, `predecessorhash` and the metadata digest. That metadata includes source, subject, type, specversion, ID, UTC timestamp, content type, data and reference key. The first predecessor is 64 zeros. Verification follows physical log order and checks cancellation. Records without `hashversion` are verified with the algorithm of their record and counted as `LegacyEvents`. Once a chain contains a version-3 record, every later record must be version 3 as well, and a version-3 record is verified with version 3 only.
+
+An optional `signature` is the Ed25519 signature of the hash text by a recorded key, written at commit, see [signatures](signatures.md). It is not part of the hash. Records without a signing key carry no `signature` field and are byte for byte as before. `signing-keys.json` holds `{"keys":[{"keyId":"...","publicKey":"<base64>"}]}`, written atomically before the first signed write.
 
 Reference-backed events keep an immutable `{}` placeholder and reference key. Their mutable reference payloads are deliberately outside the immutable chain, so erasure does not change the event hash. Neither the event chain nor the WAL checksum authenticates a malicious disk writer. Use trusted external checkpoints to detect whole-chain rewriting or tail truncation.
 

@@ -51,6 +51,9 @@ const (
 	WALFile = "pending.wal"
 	// TemporaryFileSuffix is appended to a file name while it is rewritten.
 	TemporaryFileSuffix = ".tmp"
+	// SigningKeysFile lists the public keys of every signing key that ever
+	// committed to the directory. It exists only once a key was configured.
+	SigningKeysFile = "signing-keys.json"
 )
 
 // Base names of the files that exist in every format.

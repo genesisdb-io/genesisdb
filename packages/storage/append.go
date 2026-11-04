@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
+	"sync"
 
 	"github.com/genesisdb-io/genesisdb/v2/packages/core"
 	"github.com/genesisdb-io/genesisdb/v2/packages/core/fsutil"
@@ -98,6 +100,8 @@ func (engine *Engine) prepareEvents(events []*core.Event) []WALEntry {
 	}
 	for _, event := range events {
 		event.HashVersion = 0
+		// Only the configured key signs, a caller cannot supply a signature.
+		event.Signature = ""
 		event.SpecVersion = core.EventSpecVersion
 		event.DataContentType = core.EventDataContentType
 		event.Time = engine.now()
@@ -120,7 +124,39 @@ func (engine *Engine) prepareEvents(events []*core.Event) []WALEntry {
 		entries = append(entries, WALEntry{Event: event, ReferenceData: referenceData})
 		predecessorHash = event.Hash
 	}
+	engine.signEntries(entries)
 	return entries
+}
+
+// parallelSigningThreshold is the batch size from which signatures are
+// computed on several cores. One Ed25519 signature costs about 30
+// microseconds, below this size starting goroutines is not worth it.
+const parallelSigningThreshold = 32
+
+// signEntries signs the prepared events. Hashes are chained and therefore
+// sequential, but each signature depends on its own hash only, so large
+// batches are signed in parallel and add little to the commit latency.
+// Without a signer nothing happens and records stay byte for byte unsigned.
+func (engine *Engine) signEntries(entries []WALEntry) {
+	if engine.signer == nil {
+		return
+	}
+	workers := min(runtime.GOMAXPROCS(0), len(entries)/parallelSigningThreshold+1)
+	if workers <= 1 {
+		for _, entry := range entries {
+			entry.Event.Signature = engine.signer.SignHash(entry.Event.Hash)
+		}
+		return
+	}
+	var group sync.WaitGroup
+	for worker := range workers {
+		group.Go(func() {
+			for position := worker; position < len(entries); position += workers {
+				entries[position].Event.Signature = engine.signer.SignHash(entries[position].Event.Hash)
+			}
+		})
+	}
+	group.Wait()
 }
 
 func (engine *Engine) appendReferenceDataOfEntries(entries []WALEntry) error {

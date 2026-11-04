@@ -4,7 +4,7 @@ What is planned for GenesisDB after 2.0, in rough order. Nothing here is a commi
 
 ## 2.1
 
-- **Event signatures.** Ed25519 signature on every event, opt-in through a key file. The hash chain proves the log is consistent, a signature proves who wrote it. Public keys are stored with the data, verified by the audit and by an offline `genesisdb verify` command, key rotation without re-signing history.
+- **Event signatures.** Implemented, see [docs/signatures.md](docs/signatures.md).
 - **Reference payload index.** Reads of subjects with reference payloads currently scan the reference log. An index makes them constant time regardless of how many reference payloads the store holds.
 - **Backups and audits without blocking writes.** Both only need a stable snapshot, which the index already provides. Commits will no longer wait for a backup to finish.
 - **Read-only mode.** A flag that refuses every write, for maintenance windows and for inspecting a copy of a production store.

@@ -4,6 +4,12 @@ All notable changes to GenesisDB are documented in this file. The format is base
 
 Release notes with the commits of each version are on the [GitHub releases page](https://github.com/genesisdb-io/genesisdb/releases). This file records the notable changes of each line.
 
+## [Unreleased]
+
+### Added
+- **Event signatures**: with `GENESISDB_SIGNING_KEY` (Ed25519, PKCS#8, a path or the file content in base64) every new event is signed at commit and the signature is stored with it. Public keys are recorded in `signing-keys.json`, key rotation keeps history verifiable. `GENESISDB_TRUSTED_SIGNING_KEYS` pins the keys the audit trusts. `/api/v2` returns `signature` on signed events, `GET /api/v2/signing-keys` lists the keys, `GET /api/v2/admin/audit` verifies signatures. Off by default, without a key records and responses are unchanged, `/api/v1` stays frozen. See [docs/signatures.md](docs/signatures.md).
+- **`genesisdb verify`**: checks hash chain and signatures of a stopped data directory without changing it.
+
 ## [2.0.0]
 
 The first open source release. GenesisDB 2 is the successor of the 1.x line and a drop-in replacement for it: an existing data directory is migrated automatically on first start, every 1.x backup restores, HTTP routes and responses stay compatible. The migration is one-way, so a backup of the data directory before upgrading is mandatory, as with every migration. See [docs/compatibility.md](docs/compatibility.md).

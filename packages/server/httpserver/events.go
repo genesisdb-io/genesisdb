@@ -2,6 +2,8 @@ package httpserver
 
 import (
 	"encoding/json"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/genesisdb-io/genesisdb/v2/packages/core"
@@ -20,6 +22,9 @@ type EventResponse struct {
 	PredecessorHash string          `json:"predecessorhash"`
 	Data            json.RawMessage `json:"data"`
 	Hash            string          `json:"hash"`
+	// Signature is present on signed events only, so unsigned events answer
+	// byte for byte as before. The frozen /api/v1 never sends it.
+	Signature string `json:"signature,omitempty"`
 }
 
 func newEventResponse(event *core.Event) EventResponse {
@@ -34,7 +39,24 @@ func newEventResponse(event *core.Event) EventResponse {
 		PredecessorHash: event.PredecessorHash,
 		Data:            event.Data,
 		Hash:            event.Hash,
+		Signature:       event.Signature,
 	}
+}
+
+// newEventResponsesFor converts events for the API version of request.
+func newEventResponsesFor(request *http.Request, events []*core.Event) []EventResponse {
+	responses := newEventResponses(events)
+	if !isVersion2Request(request) {
+		for position := range responses {
+			responses[position].Signature = ""
+		}
+	}
+	return responses
+}
+
+// isVersion2Request reports whether request uses the current API.
+func isVersion2Request(request *http.Request) bool {
+	return strings.HasPrefix(request.URL.Path, v2Prefix+"/")
 }
 
 // newEventResponses converts events. System events never leave the API.

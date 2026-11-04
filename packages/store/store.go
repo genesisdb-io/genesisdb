@@ -69,6 +69,14 @@ type Options struct {
 	Logger *slog.Logger
 	// Faults injects I/O failures in tests. Leave nil in production.
 	Faults fsutil.FaultInjector
+	// Signer signs every new event with an Ed25519 key. Nil commits
+	// unsigned events exactly as without signing support. Directories kept
+	// in the legacy format are never signed.
+	Signer *core.EventSigner
+	// TrustedSigningKeys pins the public keys the audit verifies signatures
+	// with. Empty uses the keys recorded in the data directory, which
+	// detects damage but not a writer of the directory who adds a key.
+	TrustedSigningKeys []core.SigningPublicKey
 }
 
 // Store is an open GenesisDB data directory. It is safe for concurrent use.
@@ -90,6 +98,8 @@ type Store struct {
 	faults        fsutil.FaultInjector
 
 	evaluateGDBQLPrecondition core.GDBQLPreconditionEvaluator
+	signer                    *core.EventSigner
+	trustedSigningKeys        []core.SigningPublicKey
 
 	writeMutex       sync.Mutex
 	maintenanceMutex sync.RWMutex
@@ -116,6 +126,12 @@ func Open(dataDirectory string, options Options) (*Store, error) {
 		s.logger = slog.Default()
 	}
 	s.evaluateGDBQLPrecondition = options.EvaluateGDBQLPrecondition
+	s.signer = options.Signer
+	s.trustedSigningKeys = options.TrustedSigningKeys
+	if _, err := core.NewSigningKeySet(s.trustedSigningKeys); err != nil {
+		lock.Unlock()
+		return nil, err
+	}
 	if options.CacheSize >= 0 {
 		s.cache = cache.New[core.RecordLocation, *core.Event](cache.Options[*core.Event]{
 			MaxEntries:   options.CacheSize,
@@ -146,7 +162,16 @@ func (s *Store) open(policy FormatPolicy) error {
 	if err := s.index.CheckCompatibility(); err != nil {
 		return err
 	}
-	engine, err := storage.Open(s.dataDirectory, storage.Options{Format: format, Logger: s.logger, Faults: s.faults})
+	// The public key is recorded before the first signed write, so every
+	// signature in the directory names a recorded key.
+	if s.signer != nil {
+		if format != layout.FormatCurrent {
+			s.logger.Warn("signing key ignored: directories kept in the legacy storage format are not signed")
+		} else if err := s.registerSigningKeys([]core.SigningPublicKey{s.signer.PublicKey()}); err != nil {
+			return fmt.Errorf("failed to record the signing key: %w", err)
+		}
+	}
+	engine, err := storage.Open(s.dataDirectory, storage.Options{Format: format, Logger: s.logger, Faults: s.faults, Signer: s.signer})
 	if err != nil {
 		return err
 	}

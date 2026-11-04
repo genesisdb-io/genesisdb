@@ -26,6 +26,7 @@ An event sourcing database for building event-driven apps, single node, written 
 - GDBQL, a small query language with filters, ordering, grouping, aggregates, projections and subqueries, see [docs/gdbql.md](docs/gdbql.md).
 - optional JSON schemas per event type, enforced on commit.
 - every event is SHA-256 chained to its predecessor, `GET /api/v2/admin/audit` verifies the whole store.
+- optional Ed25519 event signatures, persisted at commit, verifiable offline and with standard tools, see [docs/signatures.md](docs/signatures.md).
 - personal data as reference payloads: erase it later with one request, the hash chain stays valid, an audit trail is written.
 - logical backup and restore, index rebuild, Prometheus and OpenTelemetry metrics.
 - built-in MCP endpoint: AI agents connect to `/mcp` with the usual tokens, see [docs/mcp.md](docs/mcp.md).
@@ -110,6 +111,7 @@ The server binds to `127.0.0.1:8080`, creates `./data` and prints a welcome box 
 ```bash
 genesisdb                  # start the server
 genesisdb convert          # migrate a stopped 1.x data directory offline, back it up first
+genesisdb verify           # check hash chain and signatures of a stopped data directory, read-only
 genesisdb version
 ```
 
@@ -166,6 +168,8 @@ Everything is configured with environment variables, a `.env` file in the workin
 | `GENESISDB_METRICS_PORT` | `2112` | Separate Prometheus listener |
 | `GENESISDB_LEGACY_METRICS` | `true` | Also expose historical metric names |
 | `GENESISDB_MCP` | `false` | Serve the MCP endpoint for AI agents at `/mcp` |
+| `GENESISDB_SIGNING_KEY` | disabled | Ed25519 private key (PKCS#8) that signs new events, a file path or the file content in base64 |
+| `GENESISDB_TRUSTED_SIGNING_KEYS` | recorded keys | Comma separated public keys the audit trusts, see [docs/signatures.md](docs/signatures.md) |
 
 OTLP export additionally requires `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT`. Standard `OTEL_*` settings apply. Metrics endpoints are unauthenticated and must remain on a trusted network. Metric cardinality is bounded: subjects are never exported as labels, and at most 256 distinct event types get their own label value.
 
@@ -194,7 +198,7 @@ GenesisDB is one Go module with each engine as its own package under `packages/`
 
 ## Integrity and privacy boundaries
 
-Every event carries a SHA-256 hash that binds its predecessor. Hash chains are not signatures: an attacker with write access to the data directory can rewrite a whole chain or truncate its tail. Keep trusted external checkpoints and independent backups if that threat matters.
+Every event carries a SHA-256 hash that binds its predecessor. Hash chains are not signatures: an attacker with write access to the data directory can rewrite a whole chain or truncate its tail. Optional [event signatures](docs/signatures.md) detect a rewrite when the private key is kept away from that attacker and the trusted public keys are pinned outside the data directory. Neither detects truncation of the newest events. Keep trusted external checkpoints and independent backups if that threat matters.
 
 Reference-payload erasure replaces the entire reference object with `{}` and records requested/completed audit events. It does not erase immutable metadata, inline payloads, old backups, filesystem snapshots or disk remnants. Do not put personal data in immutable event subjects, types or sources. The reference key that remains is a SHA-256 digest of metadata and original payload, irreversible but confirmable for guessable payloads, see [SECURITY.md](SECURITY.md). Erasure is a building block, not a GDPR compliance guarantee.
 
@@ -206,6 +210,7 @@ Reference-payload erasure replaces the entire reference object with `{}` and rec
 - [Postman collection](docs/postman/README.md)
 - [Embedded engines](docs/engines.md)
 - [Storage format and recovery](docs/storage-format.md)
+- [Event signatures](docs/signatures.md)
 - [Compatibility and upgrade from 1.x](docs/compatibility.md)
 - [Security policy](SECURITY.md)
 - [Design notes](docs/design-notes.md)

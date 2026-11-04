@@ -390,7 +390,7 @@ func runQuery(server *Server, ctx context.Context, arguments json.RawMessage) (a
 		return nil, err
 	}
 	items := make([]any, 0)
-	for _, item := range queryResultItems(output) {
+	for _, item := range queryResultItems(output, true) {
 		if event, isEvent := item.(*core.Event); isEvent {
 			// System events never leave the API.
 			if event.IsSystemEvent() {

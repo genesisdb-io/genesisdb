@@ -46,7 +46,7 @@ func (server *Server) handleFetch(writer http.ResponseWriter, request *http.Requ
 		http.Error(writer, fmt.Sprintf("Failed to get events: %v", err), httpStatusForError(err))
 		return
 	}
-	writeNDJSONOrArray(writer, request, newEventResponses(events))
+	writeNDJSONOrArray(writer, request, newEventResponsesFor(request, events))
 }
 
 type subjectResponse struct {

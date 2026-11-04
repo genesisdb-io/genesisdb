@@ -51,7 +51,7 @@ func (server *Server) handleCommit(writer http.ResponseWriter, request *http.Req
 		http.Error(writer, fmt.Sprintf("Failed to commit events: %v", err), httpStatusForError(err))
 		return
 	}
-	writeNDJSONOrArray(writer, request, newEventResponses(committed))
+	writeNDJSONOrArray(writer, request, newEventResponsesFor(request, committed))
 }
 
 // invalidCommitError is a client error in a commit request, reported

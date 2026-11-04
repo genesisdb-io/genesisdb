@@ -21,6 +21,9 @@ type Backup struct {
 	SystemEvents  []*Event              `json:"system,omitempty"`
 	// Schemas contains exact schema file names and JSON contents.
 	Schemas map[string]json.RawMessage `json:"schemas,omitempty"`
+	// SigningKeys are the public keys recorded in the data directory, so a
+	// restored store can still name the key of every signature.
+	SigningKeys []SigningPublicKey `json:"signingKeys,omitempty"`
 
 	// Extended selects the extended JSON form when the backup is encoded.
 	Extended bool `json:"-"`

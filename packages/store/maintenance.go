@@ -48,7 +48,9 @@ func (s *Store) RebuildIndexes(ctx context.Context) (int64, error) {
 	return s.index.EventCount(), nil
 }
 
-// VerifyHashChain checks the hash chain of the authoritative event log.
+// VerifyHashChain checks the hash chain of the authoritative event log and
+// every event signature, against the trusted keys if configured, otherwise
+// against the keys recorded in the data directory.
 func (s *Store) VerifyHashChain(ctx context.Context) (*storage.HashChainReport, error) {
 	if err := acquireContext(ctx, s.writeMutex.TryLock); err != nil {
 		return nil, err
@@ -59,7 +61,11 @@ func (s *Store) VerifyHashChain(ctx context.Context) (*storage.HashChainReport, 
 	}
 	s.maintenanceMutex.RLock()
 	defer s.maintenanceMutex.RUnlock()
-	return s.storage.VerifyHashChainContext(ctx)
+	keys, err := s.verificationKeys()
+	if err != nil {
+		return nil, err
+	}
+	return s.storage.VerifyHashChainAndSignatures(ctx, keys)
 }
 
 // Backup returns a logical backup. Payloads stored as reference data are
@@ -171,6 +177,12 @@ func (s *Store) Backup(ctx context.Context) (*core.Backup, error) {
 	if len(backup.Schemas) > 0 {
 		backup.Extended = true
 	}
+	if backup.SigningKeys, err = s.SigningKeys(); err != nil {
+		return nil, err
+	}
+	if len(backup.SigningKeys) > 0 {
+		backup.Extended = true
+	}
 	if err := storage.ValidateBackup(backup); err != nil {
 		return nil, err
 	}
@@ -231,6 +243,10 @@ func (s *Store) Restore(ctx context.Context, backup *core.Backup) error {
 			s.index.MarkFailed(err)
 			return fmt.Errorf("restore schema failed: %w", err)
 		}
+	}
+	if err := s.registerSigningKeys(backup.SigningKeys); err != nil {
+		s.index.MarkFailed(err)
+		return fmt.Errorf("restore signing keys failed: %w", err)
 	}
 	if err := s.index.Rebuild(); err != nil {
 		s.index.MarkFailed(err)

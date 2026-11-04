@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/genesisdb-io/genesisdb/v2/packages/core"
 	"github.com/genesisdb-io/genesisdb/v2/packages/store"
 )
 
@@ -45,6 +46,10 @@ type Config struct {
 	LogLevel               slog.Level
 	// IsMCPEnabled serves the Model Context Protocol endpoint at /mcp.
 	IsMCPEnabled bool
+	// Signer signs new events, nil when no signing key is configured.
+	Signer *core.EventSigner
+	// TrustedSigningKeys pin the public keys the audit trusts.
+	TrustedSigningKeys []core.SigningPublicKey
 }
 
 // Environment variables that earlier releases understood and that are gone.
@@ -171,6 +176,12 @@ func loadConfig(lookup func(string) (string, bool), logger *slog.Logger) (*Confi
 		if err := config.LogLevel.UnmarshalText([]byte(level)); err != nil {
 			return nil, fmt.Errorf("GENESISDB_LOG_LEVEL: %w", err)
 		}
+	}
+	if config.Signer, err = loadSigningKey(value("GENESISDB_SIGNING_KEY", "")); err != nil {
+		return nil, fmt.Errorf("GENESISDB_SIGNING_KEY: %w", err)
+	}
+	if config.TrustedSigningKeys, err = loadTrustedSigningKeys(value("GENESISDB_TRUSTED_SIGNING_KEYS", "")); err != nil {
+		return nil, fmt.Errorf("GENESISDB_TRUSTED_SIGNING_KEYS: %w", err)
 	}
 	for _, name := range removedVariables {
 		if _, isSet := lookup(name); isSet {

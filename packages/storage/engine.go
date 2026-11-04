@@ -30,6 +30,9 @@ type Options struct {
 	Now func() time.Time
 	// NewEventID returns the ID of new events. Defaults to core.NewUUID.
 	NewEventID func() string
+	// Signer signs new events of the current format. Nil writes unsigned
+	// events, byte for byte as without signing support.
+	Signer *core.EventSigner
 }
 
 // Engine owns the event logs of one data directory. It does not lock the
@@ -43,6 +46,7 @@ type Engine struct {
 	faults          fsutil.FaultInjector
 	now             func() time.Time
 	newEventID      func() string
+	signer          *core.EventSigner
 
 	// lastEventHash and mainEventLogSize are written by the single writer
 	// only.
@@ -92,6 +96,11 @@ func Open(dataDirectory string, options Options) (*Engine, error) {
 		faults:          options.Faults,
 		now:             options.Now,
 		newEventID:      options.NewEventID,
+	}
+	// Signatures cover hashes that bind the predecessor, which only the
+	// current format writes.
+	if options.Format == layout.FormatCurrent {
+		engine.signer = options.Signer
 	}
 	if engine.logger == nil {
 		engine.logger = slog.Default()

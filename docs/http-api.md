@@ -25,6 +25,7 @@ List responses are NDJSON (`application/x-ndjson`, every object followed by an e
 | GET | `/api/v2/types` | read | List event types |
 | GET | `/api/v2/schemas` | read | List all event schemas |
 | POST | `/api/v2/schemas` | admin | Register an event schema |
+| GET | `/api/v2/signing-keys` | read | List the public keys of event signatures, see [signatures](signatures.md) |
 | GET | `/api/v2/admin/audit` | admin | Verify the hash chain |
 | GET | `/api/v2/admin/backup` | admin | Export a backup |
 | POST | `/api/v2/admin/restore` | admin | Restore a backup into an empty store |
@@ -148,6 +149,10 @@ HTTP commits of that exact event type are validated against a strict subset, not
 `required` supports an array of field names on an object, or the per-property boolean shown above. `items` accepts one schema object. Additional object fields are rejected by default, unlike standard JSON Schema. Enable them explicitly with `additionalProperties: true` or the alias `allowAdditionalProperties: true`. When both are present, `additionalProperties` takes precedence. `description` and `title` are annotations. `$ref`, formats, patterns, numeric bounds, enum and schema composition are not implemented.
 
 Schemas are immutable registrations. Schema files use SHA-256-derived names and store the exact event type in an envelope. Embedded applications must use `CommitValidated` if they want schema enforcement and `UpdateSchemas` for serialized registration.
+
+## Signatures
+
+With `GENESISDB_SIGNING_KEY` set, events returned by `/api/v2` (commit, fetch, subscribe, full-event queries) carry a `signature` field after `hash`. Unsigned events have no `signature` field, so responses of stores without a key are unchanged. `GET /api/v2/admin/audit` also verifies signatures and adds a `Signatures:` line on stores that hold signed events. `/api/v1` never returns signatures. Format, rotation and trust are described in [signatures.md](signatures.md).
 
 ## API v1
 

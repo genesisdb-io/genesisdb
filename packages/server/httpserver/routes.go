@@ -55,6 +55,7 @@ func (server *Server) v2Routes() []route {
 		{method: http.MethodGet, path: "/types", access: accessRead, handler: server.handleListEventTypes},
 		{method: http.MethodGet, path: "/schemas", access: accessRead, handler: server.handleListSchemas},
 		{method: http.MethodPost, path: "/schemas", access: accessAdmin, handler: server.handleRegisterSchema},
+		{method: http.MethodGet, path: "/signing-keys", access: accessRead, handler: server.handleListSigningKeys},
 		{method: http.MethodGet, path: "/admin/audit", access: accessAdmin, handler: server.handleVerifyHashChain},
 		{method: http.MethodGet, path: "/admin/backup", access: accessAdmin, handler: server.handleBackup},
 		{method: http.MethodPost, path: "/admin/restore", access: accessAdmin, handler: server.handleRestore, restore: true},

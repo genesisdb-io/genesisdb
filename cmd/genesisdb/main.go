@@ -38,6 +38,8 @@ func main() {
 		switch os.Args[1] {
 		case "convert":
 			os.Exit(runConvert(os.Args[2:], logger))
+		case "verify":
+			os.Exit(runVerify(os.Args[2:], logger))
 		case "version", "--version", "-v":
 			fmt.Println("GenesisDB", core.Version)
 			return
@@ -70,6 +72,7 @@ func printUsage() {
 	fmt.Print(`Usage:
   genesisdb                  start the server, configured by GENESISDB_* environment variables
   genesisdb convert [flags]  migrate a stopped 1.x data directory offline (the server does this automatically on start)
+  genesisdb verify [flags]   check hash chain and event signatures of a stopped data directory, read-only
   genesisdb version          print the version
 `)
 }
@@ -121,6 +124,8 @@ func runServer(logger *slog.Logger) error {
 		EvaluateGDBQLPrecondition: query.EvaluatePrecondition,
 		Observer:                  observer,
 		Logger:                    logger,
+		Signer:                    config.Signer,
+		TrustedSigningKeys:        config.TrustedSigningKeys,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to open the data directory: %w", err)
@@ -179,6 +184,9 @@ func runServer(logger *slog.Logger) error {
 	}
 	if config.IsMCPEnabled {
 		logger.Info("- MCP endpoint: /mcp")
+	}
+	if key, isSigning := eventStore.ActiveSigningKey(); isSigning {
+		logger.Info("- Event signing: Ed25519, key " + key.KeyID)
 	}
 	logger.Info("HTTP server starting on port " + config.Port)
 	logger.Info("GenesisDB is up and running", "version", core.Version)

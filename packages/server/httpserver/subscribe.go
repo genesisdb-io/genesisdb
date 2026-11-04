@@ -80,7 +80,7 @@ func (server *Server) handleSubscribe(writer http.ResponseWriter, request *http.
 			}
 			continue
 		}
-		for _, event := range newEventResponses(batch.Events) {
+		for _, event := range newEventResponsesFor(request, batch.Events) {
 			encoded, err := json.Marshal(event)
 			if err != nil {
 				continue

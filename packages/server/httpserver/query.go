@@ -30,7 +30,7 @@ func (server *Server) handleQuery(writer http.ResponseWriter, request *http.Requ
 		http.Error(writer, fmt.Sprintf("Failed to execute query: %v", err), httpStatusForError(err))
 		return
 	}
-	items := queryResultItems(result)
+	items := queryResultItems(result, isVersion2Request(request))
 	// NDJSON is the default. /api/v2 honors x-disable-ndjson like every other
 	// list route, /api/v1 keeps the NDJSON answer of 1.1.6 unchanged.
 	if strings.HasPrefix(request.URL.Path, v2Prefix+"/") {
@@ -41,8 +41,9 @@ func (server *Server) handleQuery(writer http.ResponseWriter, request *http.Requ
 }
 
 // queryResultItems flattens a query result into NDJSON items. Full events
-// keep their persisted form, which matches every earlier release.
-func queryResultItems(result any) []any {
+// keep their persisted form, which matches every earlier release. Their
+// signature is part of the current API only.
+func queryResultItems(result any, includeSignatures bool) []any {
 	switch typed := result.(type) {
 	case []query.Row:
 		items := make([]any, len(typed))
@@ -53,6 +54,10 @@ func queryResultItems(result any) []any {
 	case []*core.Event:
 		items := make([]any, len(typed))
 		for position, event := range typed {
+			if event.Signature != "" && !includeSignatures {
+				event = event.Clone()
+				event.Signature = ""
+			}
 			items[position] = event
 		}
 		return items

@@ -1457,6 +1457,38 @@
               }
             }
           ]
+        },
+        {
+          "name": "List signing keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/signing-keys",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "signing-keys"
+              ]
+            },
+            "description": "Public keys of event signatures and the active key ID. Empty unless GENESISDB_SIGNING_KEY was configured, see docs/signatures.md."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"lists keys\", () => pm.expect(pm.response.json().keys).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

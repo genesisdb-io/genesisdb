@@ -52,6 +52,11 @@ type Event struct {
 	ReferenceDataKey string `json:"ref,omitempty"`
 
 	Options EventOptions `json:"options,omitempty"`
+
+	// Signature is the Ed25519 signature of Hash, written at commit when a
+	// signing key is configured, see SignaturePrefix. Absent on unsigned
+	// events, so records without it keep their exact historical bytes.
+	Signature string `json:"signature,omitempty"`
 }
 
 // EventOptions are per-event commit options. They are persisted unchanged.

@@ -27,6 +27,7 @@ func (server *Server) handleVerifyHashChain(writer http.ResponseWriter, request 
 	writer.Header().Set("Content-Type", "text/plain")
 	if report.IsValid() {
 		fmt.Fprintf(writer, "Audit passed. All %d events integrity checks succeeded.", eventCount)
+		writeSignatureSummary(writer, request, report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents)
 		return
 	}
 	// The violation is reported once per subject, as in earlier releases.
@@ -34,6 +35,41 @@ func (server *Server) handleVerifyHashChain(writer http.ResponseWriter, request 
 	for _, subject := range report.Subjects {
 		fmt.Fprintf(writer, "- Subject %s: %s\n", subject, report.Problem)
 	}
+	writeSignatureSummary(writer, request, report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents)
+}
+
+// writeSignatureSummary appends the signature counts to an audit answer of
+// /api/v2 when the store holds signed events. Stores without signatures and
+// the frozen /api/v1 answer exactly as before.
+func writeSignatureSummary(writer http.ResponseWriter, request *http.Request, signed, unsigned, unknownKey int) {
+	if !isVersion2Request(request) || signed+unknownKey == 0 {
+		return
+	}
+	fmt.Fprintf(writer, "\nSignatures: %d valid, %d unsigned, %d signed by an untrusted key.", signed, unsigned, unknownKey)
+}
+
+// SigningKeysResponse is the body of GET /api/v2/signing-keys.
+type SigningKeysResponse struct {
+	// Active is the key ID new events are signed with, empty when signing
+	// is off.
+	Active string                  `json:"active"`
+	Keys   []core.SigningPublicKey `json:"keys"`
+}
+
+func (server *Server) handleListSigningKeys(writer http.ResponseWriter, request *http.Request) {
+	keys, err := server.store.SigningKeys()
+	if err != nil {
+		http.Error(writer, fmt.Sprintf("Failed to read signing keys: %v", err), httpStatusForError(err))
+		return
+	}
+	response := SigningKeysResponse{Keys: keys}
+	if response.Keys == nil {
+		response.Keys = []core.SigningPublicKey{}
+	}
+	if key, isSigning := server.store.ActiveSigningKey(); isSigning {
+		response.Active = key.KeyID
+	}
+	writeJSON(writer, http.StatusOK, response)
 }
 
 func (server *Server) handleRebuildIndexes(writer http.ResponseWriter, request *http.Request) {
