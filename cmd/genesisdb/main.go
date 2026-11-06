@@ -188,6 +188,9 @@ func runServer(logger *slog.Logger) error {
 	}
 	if key, isSigning := eventStore.ActiveSigningKey(); isSigning {
 		logger.Info("- Event signing: Ed25519, key " + key.KeyID)
+		if len(config.TrustedSigningKeys) == 0 {
+			logger.Warn("GENESISDB_TRUSTED_SIGNING_KEYS is not set: the audit trusts the keys recorded in the data directory, which a writer of the directory can extend")
+		}
 	}
 	logger.Info("HTTP server starting on port " + config.Port)
 	logger.Info("GenesisDB is up and running", "version", core.Version)

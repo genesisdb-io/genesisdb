@@ -101,9 +101,21 @@ func (s *Store) signatureTrust() (*core.SignatureTrust, error) {
 	return newSignatureTrust(s.dataDirectory, s.trustedSigningKeys, s.revokedSigningKeys)
 }
 
+// restoreSigningKeys returns the keys the signatures of a backup must verify
+// with: the pinned trusted keys if configured, otherwise the keys the backup
+// carries. Whoever can write the backup can add a key to it, so without
+// pinned keys the check detects damage, not a deliberate rewrite.
+func (s *Store) restoreSigningKeys(backup *core.Backup) (core.SigningKeySet, error) {
+	if len(s.trustedSigningKeys) > 0 {
+		return core.NewSigningKeySet(s.trustedSigningKeys)
+	}
+	return core.NewSigningKeySet(backup.SigningKeys)
+}
+
 func newSignatureTrust(dataDirectory string, trusted []core.SigningPublicKey, revocations core.SigningKeyRevocations) (*core.SignatureTrust, error) {
 	keys := trusted
-	if len(keys) == 0 {
+	isPinned := len(keys) > 0
+	if !isPinned {
 		recorded, err := ReadSigningKeys(dataDirectory)
 		if err != nil {
 			return nil, err
@@ -114,7 +126,7 @@ func newSignatureTrust(dataDirectory string, trusted []core.SigningPublicKey, re
 	if err != nil {
 		return nil, err
 	}
-	return &core.SignatureTrust{Keys: set, Revocations: revocations}, nil
+	return &core.SignatureTrust{Keys: set, Revocations: revocations, IsPinned: isPinned}, nil
 }
 
 // VerifyStoppedDirectory checks the hash chain and every signature of a data

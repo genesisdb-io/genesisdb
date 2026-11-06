@@ -71,8 +71,16 @@ func ValidateBackup(backup *core.Backup) error {
 // Timestamps are not used for ordering: a clock correction in the source
 // must not reorder a subject's history. Payloads that are stored as
 // reference data are never written into the immutable event data.
-func (engine *Engine) WriteBackup(backup *core.Backup) error {
+//
+// Signed events are checked before anything is written, see
+// checkBackupSignatures. A signature is carried over only when the restored
+// event has exactly the hash it signed. Every record is encoded before the
+// first write, so a rejected backup leaves the logs untouched.
+func (engine *Engine) WriteBackup(backup *core.Backup, signingKeys core.SigningKeySet) error {
 	if err := engine.checkHealthy(); err != nil {
+		return err
+	}
+	if err := ValidateBackupSignatures(backup, signingKeys); err != nil {
 		return err
 	}
 	referenceDataKeys := map[string]bool{}
@@ -85,11 +93,6 @@ func (engine *Engine) WriteBackup(backup *core.Backup) error {
 		}
 		referenceDataBuffer = append(append(referenceDataBuffer, encoded...), '\n')
 	}
-	if len(referenceDataBuffer) > 0 {
-		if err := engine.appendToLog(engine.referenceDataLogPath(), referenceDataBuffer); err != nil {
-			return err
-		}
-	}
 
 	var systemEventBuffer []byte
 	previousSystem := core.ZeroHash
@@ -100,18 +103,13 @@ func (engine *Engine) WriteBackup(backup *core.Backup) error {
 		if engine.format == layout.FormatCurrent {
 			event.HashVersion = core.CurrentHashVersion
 		}
-		engine.rehashForRestore(event, original.Hash)
+		rehashForRestore(event, original.Hash)
 		previousSystem = event.Hash
 		line, err := EncodeEventLine(event)
 		if err != nil {
 			return err
 		}
 		systemEventBuffer = append(append(systemEventBuffer, line...), '\n')
-	}
-	if len(systemEventBuffer) > 0 {
-		if err := engine.appendToLog(engine.systemEventLogPath(), systemEventBuffer); err != nil {
-			return err
-		}
 	}
 
 	ordered := make([]*core.Event, len(backup.Events))
@@ -131,13 +129,23 @@ func (engine *Engine) WriteBackup(backup *core.Backup) error {
 		if engine.format == layout.FormatCurrent {
 			event.HashVersion = core.CurrentHashVersion
 		}
-		engine.rehashForRestore(event, backup.Events[position].Hash)
+		rehashForRestore(event, backup.Events[position].Hash)
 		predecessorHash = event.Hash
 		line, err := EncodeEventLine(event)
 		if err != nil {
 			return err
 		}
 		eventBuffer = append(append(eventBuffer, line...), '\n')
+	}
+	if len(referenceDataBuffer) > 0 {
+		if err := engine.appendToLog(engine.referenceDataLogPath(), referenceDataBuffer); err != nil {
+			return err
+		}
+	}
+	if len(systemEventBuffer) > 0 {
+		if err := engine.appendToLog(engine.systemEventLogPath(), systemEventBuffer); err != nil {
+			return err
+		}
 	}
 	if len(eventBuffer) > 0 {
 		if err := engine.appendToLog(engine.mainEventLogPath(), eventBuffer); err != nil {
@@ -147,20 +155,54 @@ func (engine *Engine) WriteBackup(backup *core.Backup) error {
 	return engine.loadMainEventLogState()
 }
 
-// rehashForRestore recomputes the hash of a restored event. A signature
-// stays when the recomputed hash equals the hash it signed, so a backup
-// restored into the same format keeps the signatures of every key that
-// ever committed. A signed event whose hash changed is signed again with
-// the configured key, or loses its signature without one. Unsigned events
-// stay unsigned: a restore never claims that a key committed history it
-// did not sign.
-func (engine *Engine) rehashForRestore(event *core.Event, originalHash string) {
-	event.Hash = core.HashEvent(event)
-	if event.Signature == "" || event.Hash == originalHash {
-		return
+// ValidateBackupSignatures checks every signed event and system event of a
+// backup against keys, see checkBackupSignatures. It writes nothing.
+func ValidateBackupSignatures(backup *core.Backup, keys core.SigningKeySet) error {
+	if err := checkBackupSignatures(backup.Events, keys, "event"); err != nil {
+		return err
 	}
-	event.Signature = ""
-	if engine.signer != nil {
-		event.Signature = engine.signer.SignHash(event.Hash)
+	return checkBackupSignatures(backup.SystemEvents, keys, "system event")
+}
+
+// checkBackupSignatures rejects a backup whose signed events were changed
+// after they were signed. For every signed event, its hash must match its
+// content and its predecessor in the backup, and the signature must verify
+// with one of keys. Together this proves that each signed event, and the
+// history before it, is the one the key signed. Unsigned events are not
+// checked, a restore never signs them.
+func checkBackupSignatures(events []*core.Event, keys core.SigningKeySet, kind string) error {
+	predecessorHash := core.ZeroHash
+	for position, event := range events {
+		if event.Signature != "" {
+			switch {
+			case !core.HasValidHash(event):
+				return fmt.Errorf("%w: signed %s %d (%s) does not match its hash", core.ErrInvalidBackup, kind, position, event.ID)
+			case event.PredecessorHash != predecessorHash:
+				return fmt.Errorf("%w: signed %s %d (%s) does not follow its predecessor in the backup", core.ErrInvalidBackup, kind, position, event.ID)
+			}
+			switch keys.VerifySignature(event) {
+			case core.SignatureUnknownKey:
+				return fmt.Errorf("%w: %s %d (%s) is signed by an unknown key", core.ErrInvalidBackup, kind, position, event.ID)
+			case core.SignatureInvalid:
+				return fmt.Errorf("%w: %s %d (%s) has an invalid signature", core.ErrInvalidBackup, kind, position, event.ID)
+			}
+		}
+		predecessorHash = event.Hash
+	}
+	return nil
+}
+
+// rehashForRestore recomputes the hash of a restored event. A signature
+// stays when the recomputed hash equals the hash it signed. When the hash
+// changes, the signature is dropped. The backup's signatures were verified
+// before anything was written, so the change comes from the restore itself:
+// legacy events earlier in the chain get the current hash version, which
+// shifts every later predecessor hash, and directories kept in the legacy
+// format cannot hold signatures at all. A restore never signs anything: it
+// does not claim that a key committed history it did not sign.
+func rehashForRestore(event *core.Event, originalHash string) {
+	event.Hash = core.HashEvent(event)
+	if event.Signature != "" && event.Hash != originalHash {
+		event.Signature = ""
 	}
 }

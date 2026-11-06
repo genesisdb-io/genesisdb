@@ -55,7 +55,7 @@ The public key of every key that committed is recorded in `signing-keys.json` in
 
 ## Trust
 
-`signing-keys.json` lives in the data directory. Whoever can write the directory can add a key and sign a rewritten history with it. The recorded keys therefore detect damage and identify keys, they do not establish trust. Pin the keys you trust outside the directory with `GENESISDB_TRUSTED_SIGNING_KEYS` or `genesisdb verify --trusted-keys`: signatures of any other key are then reported as signed by an untrusted key. Keep the private key off the database host's data volume, in a secret store, and with access for the GenesisDB process only.
+`signing-keys.json` lives in the data directory. Whoever can write the directory can add a key and sign a rewritten history with it. The recorded keys therefore detect damage and identify keys, they do not establish trust. Pin the keys you trust outside the directory with `GENESISDB_TRUSTED_SIGNING_KEYS` or `genesisdb verify --trusted-keys`: signatures of any other key are then reported as signed by an untrusted key. Without pinned keys the server logs a warning at start, the `/api/v2` audit ends with a warning line, `genesisdb verify` prints a warning, and `genesisdb verify --require-signatures` fails. Keep the private key off the database host's data volume, in a secret store, and with access for the GenesisDB process only.
 
 ## Compromised keys
 
@@ -99,20 +99,22 @@ Signatures: 2 valid, 0 unsigned, 0 signed by an untrusted key.
 
 With revoked signatures the line ends with `, 1 signed by a revoked key.`
 
+System events (the erasure audit trail) are verified as well and reported in their own line, `System event signatures: ...`. Their hash and the link to their predecessor in the system log are checked before the signature. Revocation points name events of the main log and do not order system events, so a key that is revoked at all is not trusted for any system event. When the keys were not pinned, the answer ends with a warning line.
+
 `genesisdb verify` performs the same check on a stopped data directory without changing a byte: no write-ahead log replay, no migration, no index rebuild.
 
 ```sh
 genesisdb verify --data-dir data --trusted-keys signing.pub.pem --revoked-keys c0e1c5b3695965d2:<hash> --require-signatures
 ```
 
-Exit code 0 means valid, 1 an integrity problem (or with `--require-signatures` an unsigned, untrusted or revoked signature), 2 a usage or read error.
+Exit code 0 means valid, 1 an integrity problem (or with `--require-signatures` missing `--trusted-keys`, or an unsigned, untrusted or revoked signature on an event or system event), 2 a usage or read error.
 
 ## Compatibility
 
 - Without a key nothing changes: records, responses, backups and the audit answer are byte for byte the same.
 - `/api/v1` is frozen and never returns signatures. `/api/v2` returns `signature` on signed events and omits it on unsigned ones.
 - Directories kept in the 1.x format (`GENESISDB_STORAGE_FORMAT=keep`) are never signed, so 1.x can still read them. A 1.x directory migrated on start keeps its history unsigned and signs new events.
-- Backups contain the signatures and the recorded keys (`signingKeys`). A restore keeps a signature when its event hash is unchanged. A signed event whose hash changes (for example a backup restored into a store of another hash version) is signed again with the configured key, or loses its signature without one. Unsigned events are never signed by a restore, it does not claim that a key committed history it did not sign.
+- Backups contain the signatures and the recorded keys (`signingKeys`). Before writing anything, a restore checks every signed event and system event: its hash must match its content and its predecessor in the backup, and its signature must verify with the pinned trusted keys, or without pinned keys with the keys of the backup. A backup that fails this check is rejected with `400` and the store stays empty. A signature is kept only when the restored hash equals the hash it signed, otherwise it is dropped. That happens for a store migrated from 1.x: the restore gives its unsigned legacy events the current hash version, which changes the hash of every later event, so the signatures after them are dropped and the restored history is unsigned. Restoring into a directory kept in the 1.x format drops every signature, since that format cannot hold them. A restore never signs: it does not claim that a key committed history it did not sign. Without pinned keys the check detects damage, not a deliberate rewrite, because whoever can write the backup can add a key to it.
 
 ## Performance
 

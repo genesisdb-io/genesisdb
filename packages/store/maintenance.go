@@ -219,6 +219,13 @@ func (s *Store) Restore(ctx context.Context, backup *core.Backup) error {
 	if err := storage.ValidateBackup(backup); err != nil {
 		return err
 	}
+	signingKeys, err := s.restoreSigningKeys(backup)
+	if err != nil {
+		return err
+	}
+	if err := storage.ValidateBackupSignatures(backup, signingKeys); err != nil {
+		return err
+	}
 	if len(backup.Schemas) > 0 {
 		existing, err := os.ReadDir(s.SchemasDirectory())
 		if err != nil {
@@ -234,7 +241,7 @@ func (s *Store) Restore(ctx context.Context, backup *core.Backup) error {
 		return fmt.Errorf("restore could not start, store unchanged: %w", err)
 	}
 	s.cache.Clear()
-	if err := s.storage.WriteBackup(backup); err != nil {
+	if err := s.storage.WriteBackup(backup, signingKeys); err != nil {
 		s.index.MarkFailed(err)
 		return fmt.Errorf("restore failed, store left in maintenance state (restart refuses to serve this data directory): %w", err)
 	}

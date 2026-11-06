@@ -132,4 +132,8 @@ func (tracker *RevocationTracker) MissingRevocationPoints() []SigningKeyRevocati
 type SignatureTrust struct {
 	Keys        SigningKeySet
 	Revocations SigningKeyRevocations
+	// IsPinned reports that Keys were configured outside the data
+	// directory. Keys read from the directory or from a backup detect
+	// damage, but whoever wrote them could have added a key of their own.
+	IsPinned bool
 }

@@ -124,7 +124,7 @@ func TestSigning_AuditReportsRevokedSignatures(t *testing.T) {
 		s.Close()
 	})
 	audit := readBody(t, send(t, server, http.MethodGet, "/api/v2/admin/audit", ""))
-	if !strings.Contains(audit, "Audit passed") || !strings.HasSuffix(audit, "Signatures: 0 valid, 0 unsigned, 0 signed by an untrusted key, 1 signed by a revoked key.") {
+	if !strings.Contains(audit, "Audit passed") || !strings.Contains(audit, "Signatures: 0 valid, 0 unsigned, 0 signed by an untrusted key, 1 signed by a revoked key.") || !strings.HasSuffix(audit, UnpinnedTrustWarning) {
 		t.Fatalf("audit %q", audit)
 	}
 	var keys SigningKeysResponse

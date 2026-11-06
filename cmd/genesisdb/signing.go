@@ -106,11 +106,20 @@ func runVerify(arguments []string, logger *slog.Logger) int {
 	}
 	fmt.Printf("Events: %d (%d with legacy hashes)\n", report.CheckedEvents, report.LegacyEvents)
 	fmt.Printf("Signatures: %d valid, %d unsigned, %d signed by an untrusted key, %d signed by a revoked key\n", report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents, report.RevokedEvents)
+	system := report.SystemSignatures
+	fmt.Printf("System event signatures: %d valid, %d unsigned, %d signed by an untrusted key, %d signed by a revoked key\n", system.Signed, system.Unsigned, system.UnknownKey, system.Revoked)
+	if !report.IsTrustPinned {
+		fmt.Println("Warning: no --trusted-keys given, signatures were verified against the keys recorded in the directory, which a writer of the directory can extend")
+	}
 	if !report.IsValid() {
 		fmt.Println("FAILED: " + report.Problem)
 		return 1
 	}
-	if *requireSignatures && (report.UnsignedEvents > 0 || report.UnknownKeyEvents > 0 || report.RevokedEvents > 0) {
+	if *requireSignatures && !report.IsTrustPinned {
+		fmt.Println("FAILED: --require-signatures needs --trusted-keys, the keys recorded in the directory prove nothing")
+		return 1
+	}
+	if *requireSignatures && (report.UnsignedEvents > 0 || report.UnknownKeyEvents > 0 || report.RevokedEvents > 0 || system.Unsigned > 0 || system.UnknownKey > 0 || system.Revoked > 0) {
 		fmt.Println("FAILED: not every event is signed by a trusted, unrevoked key")
 		return 1
 	}

@@ -182,6 +182,9 @@ OTLP export additionally requires `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTE
 - A failed commit can be durable already. Check state before retrying. Once an ambiguous storage error occurs, the store rejects writes until a restart has replayed the write-ahead log.
 - Reads and subscriptions return events in commit order, independent of event timestamps.
 - Durability depends on a filesystem and hardware that honor file and directory synchronization. This is not a distributed database and does not provide replication or consensus.
+- With event signatures enabled but `GENESISDB_TRUSTED_SIGNING_KEYS` unset, the server logs a warning at start and `GET /api/v2/admin/audit` ends with a warning line. Scripts that parse the audit answer must allow for it, or pin the trusted keys. The audit also reports a `System event signatures:` line for the erasure audit trail.
+- A restore checks every signed event before writing anything and rejects a backup with a changed payload, a broken chain or an untrusted signature with `400`. The store stays empty. A restore never signs: signatures whose hash changes during the restore (for example after events migrated from 1.x) are dropped.
+- `genesisdb verify --require-signatures` fails unless `--trusted-keys` is given, because the keys recorded in the data directory can be extended by whoever writes the directory.
 
 ## Embedded use
 

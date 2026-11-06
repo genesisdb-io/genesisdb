@@ -152,7 +152,7 @@ Schemas are immutable registrations. Schema files use SHA-256-derived names and 
 
 ## Signatures
 
-With `GENESISDB_SIGNING_KEY` set, events returned by `/api/v2` (commit, fetch, subscribe, full-event queries) carry a `signature` field after `hash`. Unsigned events have no `signature` field, so responses of stores without a key are unchanged. `GET /api/v2/admin/audit` also verifies signatures and adds a `Signatures:` line on stores that hold signed events. Signatures of keys revoked through `GENESISDB_REVOKED_SIGNING_KEYS` are counted as revoked, and `GET /api/v2/signing-keys` lists the revocations under `revoked` when there are any. `/api/v1` never returns signatures. Format, rotation and trust are described in [signatures.md](signatures.md).
+With `GENESISDB_SIGNING_KEY` set, events returned by `/api/v2` (commit, fetch, subscribe, full-event queries) carry a `signature` field after `hash`. Unsigned events have no `signature` field, so responses of stores without a key are unchanged. `GET /api/v2/admin/audit` also verifies signatures and adds a `Signatures:` line on stores that hold signed events, a `System event signatures:` line when the erasure audit trail is signed, and a closing warning line when `GENESISDB_TRUSTED_SIGNING_KEYS` is not set. `POST /api/v2/admin/restore` answers `400` for a backup whose signed events do not verify. Signatures of keys revoked through `GENESISDB_REVOKED_SIGNING_KEYS` are counted as revoked, and `GET /api/v2/signing-keys` lists the revocations under `revoked` when there are any. `/api/v1` never returns signatures. Format, rotation and trust are described in [signatures.md](signatures.md).
 
 ## API v1
 

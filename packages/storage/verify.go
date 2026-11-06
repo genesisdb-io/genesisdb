@@ -28,8 +28,20 @@ type HashChainReport struct {
 	// RevokedEvents carry a signature of a revoked key, made after its
 	// revocation point. Their signature proves nothing.
 	RevokedEvents int
+	// System events (the erasure audit trail) are counted separately, they
+	// have a chain of their own.
+	SystemSignatures SystemSignatureCounts
+	// IsTrustPinned reports that signatures were verified against keys
+	// configured outside the data directory. Otherwise the keys recorded in
+	// the directory were used, which a writer of the directory can extend.
+	IsTrustPinned bool
 	Subjects      []string
 	Problem       string
+}
+
+// SystemSignatureCounts are the signature counts of the system event log.
+type SystemSignatureCounts struct {
+	Signed, Unsigned, UnknownKey, Revoked int
 }
 
 func (report *HashChainReport) IsValid() bool { return report.Problem == "" }
@@ -130,6 +142,7 @@ func (engine *Engine) VerifyHashChainAndSignatures(ctx context.Context, trust *c
 		firstInvalid, invalidID := verifier.finish()
 		report.SignedEvents = verifier.validCount
 		report.UnknownKeyEvents = verifier.unknownKeyCount
+		report.IsTrustPinned = trust.IsPinned
 		if err == nil && report.Problem == "" && firstInvalid >= 0 {
 			report.Problem = fmt.Sprintf("Event %s has an invalid signature", invalidID)
 		}
@@ -139,6 +152,11 @@ func (engine *Engine) VerifyHashChainAndSignatures(ctx context.Context, trust *c
 	}
 	if err != nil {
 		return nil, err
+	}
+	if trust != nil {
+		if err := engine.verifySystemEventSignatures(ctx, trust, report); err != nil {
+			return nil, err
+		}
 	}
 	for subject := range subjects {
 		report.Subjects = append(report.Subjects, subject)

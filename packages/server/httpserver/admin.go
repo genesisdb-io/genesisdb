@@ -28,6 +28,8 @@ func (server *Server) handleVerifyHashChain(writer http.ResponseWriter, request 
 	if report.IsValid() {
 		fmt.Fprintf(writer, "Audit passed. All %d events integrity checks succeeded.", eventCount)
 		writeSignatureSummary(writer, request, report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents, report.RevokedEvents)
+		writeSystemSignatureSummary(writer, request, report.SystemSignatures.Signed, report.SystemSignatures.Unsigned, report.SystemSignatures.UnknownKey, report.SystemSignatures.Revoked)
+		writeTrustWarning(writer, request, report.SignedEvents+report.UnknownKeyEvents+report.RevokedEvents+report.SystemSignatures.Signed, report.IsTrustPinned)
 		return
 	}
 	// The violation is reported once per subject, as in earlier releases.
@@ -35,8 +37,41 @@ func (server *Server) handleVerifyHashChain(writer http.ResponseWriter, request 
 	for _, subject := range report.Subjects {
 		fmt.Fprintf(writer, "- Subject %s: %s\n", subject, report.Problem)
 	}
+	// A problem outside the main log, for example in the system event log,
+	// names no subject of the main log.
+	if len(report.Subjects) == 0 && isVersion2Request(request) {
+		fmt.Fprintf(writer, "- %s\n", report.Problem)
+	}
 	writeSignatureSummary(writer, request, report.SignedEvents, report.UnsignedEvents, report.UnknownKeyEvents, report.RevokedEvents)
+	writeSystemSignatureSummary(writer, request, report.SystemSignatures.Signed, report.SystemSignatures.Unsigned, report.SystemSignatures.UnknownKey, report.SystemSignatures.Revoked)
+	writeTrustWarning(writer, request, report.SignedEvents+report.UnknownKeyEvents+report.RevokedEvents+report.SystemSignatures.Signed, report.IsTrustPinned)
 }
+
+// writeSystemSignatureSummary appends the signature counts of the system
+// event log (the erasure audit trail) when it holds signed events.
+func writeSystemSignatureSummary(writer http.ResponseWriter, request *http.Request, signed, unsigned, unknownKey, revoked int) {
+	if !isVersion2Request(request) || signed+unknownKey+revoked == 0 {
+		return
+	}
+	fmt.Fprintf(writer, "\nSystem event signatures: %d valid, %d unsigned, %d signed by an untrusted key", signed, unsigned, unknownKey)
+	if revoked > 0 {
+		fmt.Fprintf(writer, ", %d signed by a revoked key", revoked)
+	}
+	fmt.Fprint(writer, ".")
+}
+
+// writeTrustWarning warns when signatures were verified against the keys
+// recorded in the data directory instead of pinned keys.
+func writeTrustWarning(writer http.ResponseWriter, request *http.Request, signatures int, isPinned bool) {
+	if !isVersion2Request(request) || signatures == 0 || isPinned {
+		return
+	}
+	fmt.Fprint(writer, "\n"+UnpinnedTrustWarning)
+}
+
+// UnpinnedTrustWarning ends audits that verified signatures against the keys
+// recorded in the data directory.
+const UnpinnedTrustWarning = "Warning: signatures were verified against the keys recorded in the data directory, which a writer of the directory can extend. Pin the trusted keys with GENESISDB_TRUSTED_SIGNING_KEYS."
 
 // writeSignatureSummary appends the signature counts to an audit answer of
 // /api/v2 when the store holds signed events. Stores without signatures and
