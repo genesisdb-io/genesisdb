@@ -82,6 +82,28 @@ func TestConfig_RevokedSigningKeys(t *testing.T) {
 	}
 }
 
+// Regression: a mistyped key path was reported as "neither a readable file
+// nor base64", which did not say that the file was missing.
+func TestConfig_SigningKeyErrorsNameTheProblem(t *testing.T) {
+	directory := t.TempDir()
+	for value, expected := range map[string]string{
+		"/run/secrets/signing.pem": "key file /run/secrets/signing.pem does not exist",
+		"./signing.pem":            "key file ./signing.pem does not exist",
+		"signing.pem":              "key file signing.pem does not exist",
+		directory:                  directory + " is not a regular file",
+		"%%%":                      "neither the path of an existing file nor valid base64",
+	} {
+		_, err := loadSigningKey(value)
+		if err == nil || !strings.Contains(err.Error(), expected) {
+			t.Errorf("%q: %v", value, err)
+		}
+	}
+	_, err := loadTrustedSigningKeys("/missing/public.pem")
+	if err == nil || !strings.Contains(err.Error(), "key file /missing/public.pem does not exist") {
+		t.Errorf("trusted keys: %v", err)
+	}
+}
+
 func TestConfig_InvalidSigningKeyStopsTheStart(t *testing.T) {
 	for _, value := range []string{"/does/not/exist", "bm90IGEga2V5", "%%%"} {
 		environment := map[string]string{"GENESISDB_AUTH_TOKEN": strings.Repeat("a", 32), "GENESISDB_SIGNING_KEY": value}

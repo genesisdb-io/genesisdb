@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"github.com/genesisdb-io/genesisdb/v2/packages/core"
 	"github.com/genesisdb-io/genesisdb/v2/packages/core/layout"
@@ -59,8 +61,20 @@ func VerifyDirectory(ctx context.Context, dataDirectory string, trust *core.Sign
 	if _, err := os.Stat(filepath.Join(eventsDirectory, format.MainEventLogFile())); err != nil {
 		return nil, fmt.Errorf("no event log in %s: %w", eventsDirectory, err)
 	}
-	engine := &Engine{eventsDirectory: eventsDirectory, format: format}
-	return engine.VerifyHashChainAndSignatures(ctx, trust)
+	return newReadOnlyEngine(eventsDirectory, format).VerifyHashChainAndSignatures(ctx, trust)
+}
+
+// newReadOnlyEngine returns an engine for scans of a stopped directory. It
+// has no write-ahead log and no signer, but every other field holds its
+// default as in Open, so a scan path that uses them keeps working.
+func newReadOnlyEngine(eventsDirectory string, format layout.Format) *Engine {
+	return &Engine{
+		eventsDirectory: eventsDirectory,
+		format:          format,
+		logger:          slog.Default(),
+		now:             time.Now,
+		newEventID:      core.NewUUID,
+	}
 }
 
 func (engine *Engine) VerifyHashChain() (*HashChainReport, error) {

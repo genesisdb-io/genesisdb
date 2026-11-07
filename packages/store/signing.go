@@ -112,6 +112,29 @@ func (s *Store) restoreSigningKeys(backup *core.Backup) (core.SigningKeySet, err
 	return core.NewSigningKeySet(backup.SigningKeys)
 }
 
+// signingKeysToRecordFromBackup returns the keys of a backup that a restore
+// adds to signing-keys.json. With pinned trusted keys only pinned keys are
+// recorded: every kept signature verified with one of them, and a key the
+// backup adds on its own would only extend the recorded list. Without pinned
+// keys every key of the backup is recorded, since the audit verifies the
+// restored signatures against the recorded keys.
+func (s *Store) signingKeysToRecordFromBackup(backup *core.Backup) []core.SigningPublicKey {
+	if len(s.trustedSigningKeys) == 0 {
+		return backup.SigningKeys
+	}
+	pinned := map[core.SigningPublicKey]bool{}
+	for _, key := range s.trustedSigningKeys {
+		pinned[key] = true
+	}
+	var keys []core.SigningPublicKey
+	for _, key := range backup.SigningKeys {
+		if pinned[key] {
+			keys = append(keys, key)
+		}
+	}
+	return keys
+}
+
 func newSignatureTrust(dataDirectory string, trusted []core.SigningPublicKey, revocations core.SigningKeyRevocations) (*core.SignatureTrust, error) {
 	keys := trusted
 	isPinned := len(keys) > 0

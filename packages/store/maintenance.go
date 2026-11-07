@@ -223,7 +223,7 @@ func (s *Store) Restore(ctx context.Context, backup *core.Backup) error {
 	if err != nil {
 		return err
 	}
-	if err := storage.ValidateBackupSignatures(backup, signingKeys); err != nil {
+	if _, err := storage.ValidateBackupSignatures(backup, signingKeys, s.revokedSigningKeys); err != nil {
 		return err
 	}
 	if len(backup.Schemas) > 0 {
@@ -241,9 +241,16 @@ func (s *Store) Restore(ctx context.Context, backup *core.Backup) error {
 		return fmt.Errorf("restore could not start, store unchanged: %w", err)
 	}
 	s.cache.Clear()
-	if err := s.storage.WriteBackup(backup, signingKeys); err != nil {
+	signatures, err := s.storage.WriteBackup(backup, signingKeys, s.revokedSigningKeys)
+	if err != nil {
 		s.index.MarkFailed(err)
 		return fmt.Errorf("restore failed, store left in maintenance state (restart refuses to serve this data directory): %w", err)
+	}
+	if signatures.RevokedEvents+signatures.RevokedSystemEvents > 0 {
+		s.logger.Warn("restore dropped signatures of revoked keys, the events are restored unsigned", "events", signatures.RevokedEvents, "systemEvents", signatures.RevokedSystemEvents)
+	}
+	if signatures.RehashedEvents+signatures.RehashedSystemEvents > 0 {
+		s.logger.Warn("restore dropped signatures whose event hash changed, the events are restored unsigned", "events", signatures.RehashedEvents, "systemEvents", signatures.RehashedSystemEvents)
 	}
 	for name, content := range backup.Schemas {
 		if err := fsutil.ReplaceAtomically(filepath.Join(s.SchemasDirectory(), name), content, nil, nil, s.faults); err != nil {
@@ -251,7 +258,7 @@ func (s *Store) Restore(ctx context.Context, backup *core.Backup) error {
 			return fmt.Errorf("restore schema failed: %w", err)
 		}
 	}
-	if err := s.registerSigningKeys(backup.SigningKeys); err != nil {
+	if err := s.registerSigningKeys(s.signingKeysToRecordFromBackup(backup)); err != nil {
 		s.index.MarkFailed(err)
 		return fmt.Errorf("restore signing keys failed: %w", err)
 	}

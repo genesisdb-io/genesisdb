@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -127,16 +128,49 @@ func runVerify(arguments []string, logger *slog.Logger) int {
 	return 0
 }
 
+// looksLikePath reports whether a key value was meant as a file path. Base64
+// key material starts with letters ("LS0t" for PEM, "MC" for DER), so a
+// leading path element or a key file extension identifies a path.
+func looksLikePath(value string) bool {
+	for _, prefix := range []string{"/", "./", "../", "~"} {
+		if strings.HasPrefix(value, prefix) {
+			return true
+		}
+	}
+	for _, extension := range []string{".pem", ".der", ".key", ".pub"} {
+		if strings.HasSuffix(strings.ToLower(value), extension) {
+			return true
+		}
+	}
+	return false
+}
+
 // readKeyValue returns the file content when value names an existing file,
 // otherwise the base64 decoded value. A raw base64 public key is returned
 // as text, the key parser accepts it directly.
+//
+// Errors name the path when the value looks like one, so a mistyped path is
+// recognizable. They never contain a value that may be key material.
 func readKeyValue(value string) ([]byte, error) {
-	if info, err := os.Stat(value); err == nil && info.Mode().IsRegular() {
-		return os.ReadFile(value)
+	info, statErr := os.Stat(value)
+	switch {
+	case statErr == nil && info.Mode().IsRegular():
+		content, err := os.ReadFile(value)
+		if err != nil {
+			return nil, fmt.Errorf("%w: cannot read key file %s: %v", core.ErrInvalidSigningKey, value, err)
+		}
+		return content, nil
+	case statErr == nil:
+		return nil, fmt.Errorf("%w: %s is not a regular file", core.ErrInvalidSigningKey, value)
+	case !errors.Is(statErr, os.ErrNotExist) && looksLikePath(value):
+		return nil, fmt.Errorf("%w: cannot access key file %s: %v", core.ErrInvalidSigningKey, value, statErr)
 	}
 	decoded, err := base64.StdEncoding.DecodeString(value)
 	if err != nil {
-		return nil, fmt.Errorf("%w: neither a readable file nor base64", core.ErrInvalidSigningKey)
+		if looksLikePath(value) {
+			return nil, fmt.Errorf("%w: key file %s does not exist", core.ErrInvalidSigningKey, value)
+		}
+		return nil, fmt.Errorf("%w: the value is neither the path of an existing file nor valid base64", core.ErrInvalidSigningKey)
 	}
 	if len(decoded) == 32 {
 		return []byte(value), nil
