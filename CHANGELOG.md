@@ -7,10 +7,19 @@ Release notes with the commits of each version are on the [GitHub releases page]
 ## [Unreleased]
 
 ### Added
+- **Group commit**: commits that arrive at the same moment are written as one group and share one device flush, so write throughput grows with the number of concurrent writers instead of staying at the rate of one flush per commit. Each commit stays atomic and gets its own result, preconditions are only evaluated against durable state, and the outcome equals executing the commits one after another. Data directories, the write-ahead log, recovery and the HTTP API are unchanged. `GENESISDB_MAX_COMMITS_PER_GROUP` (`store.Options.MaxCommitsPerGroup`, default 256) bounds a group, `1` writes every commit on its own. `GENESISDB_MAX_EVENTS_PER_GROUP` (`MaxEventsPerGroup`, default 1,024) and `GENESISDB_MAX_BYTES_PER_GROUP` (`MaxBytesPerGroup`, default 8 MiB) bound its events and payload, they only split groups and never reject a commit. The operation metrics gain the label value `commit_group` for one written group. See [docs/design-notes.md](docs/design-notes.md).
+- **Crash test**: `make crash` runs the real server under concurrent load, stops it over and over (kill, graceful stop) and checks every acknowledged commit afterwards. Opt-in, see CONTRIBUTING.md.
 - **Event signatures**: with `GENESISDB_SIGNING_KEY` (Ed25519, PKCS#8, a path or the file content in base64) every new event is signed at commit and the signature is stored with it. Public keys are recorded in `signing-keys.json`, key rotation keeps history verifiable. `GENESISDB_TRUSTED_SIGNING_KEYS` pins the keys the audit trusts. `/api/v2` returns `signature` on signed events, `GET /api/v2/signing-keys` lists the keys, `GET /api/v2/admin/audit` verifies signatures. Off by default, without a key records and responses are unchanged, `/api/v1` stays frozen. See [docs/signatures.md](docs/signatures.md).
 - **`genesisdb verify`**: checks hash chain and signatures of a stopped data directory without changing it.
 - **Revocation of compromised signing keys**: `GENESISDB_REVOKED_SIGNING_KEYS` (and `genesisdb verify --revoked-keys`) withdraws trust from a key, entirely or after the event with a given hash. The audit counts revoked signatures separately and fails when the revocation point is missing from the log.
 - **Signature checks on restore and for system events**: a restore rejects a backup whose signed events or system events do not match their hash, their predecessor or a trusted key. Signatures of revoked keys are dropped and their events restored unsigned, so a store whose key was revoked stays restorable. With pinned trusted keys it records only those keys, and never signs anything. The audit and `genesisdb verify` also verify the signatures of the erasure audit trail. Without pinned trusted keys the server, the audit and `genesisdb verify` warn, and `--require-signatures` fails.
+
+### Changed
+- Waiting commits are served in arrival order. Before, they polled for the writer lock and single commits could wait for seconds under concurrent load.
+- An ambiguous storage failure reaches every commit that was written together with the failing one. All of them return the error, and after the restart all of them are durable or none is.
+- The `validate` callback of `store.CommitValidated` may run on the goroutine of another `Commit` caller.
+- Backups, audits, erasures, index rebuilds and schema registrations take the writer lock ahead of waiting commits. After each of them the waiting commits write one group before the next such request, so neither side can starve the other.
+- A `Commit` caller may write the commits queued ahead of its own, including their validation and preconditions.
 
 ## [2.0.0]
 

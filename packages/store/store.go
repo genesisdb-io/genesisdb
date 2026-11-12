@@ -16,6 +16,7 @@ import (
 	"log/slog"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/genesisdb-io/genesisdb/v2/packages/cache"
@@ -81,6 +82,16 @@ type Options struct {
 	// configured, not stored in the data directory, so a writer of the
 	// directory cannot lift a revocation. Signer must not be revoked.
 	RevokedSigningKeys []core.SigningKeyRevocation
+	// MaxCommitsPerGroup bounds how many concurrent commits share one
+	// durable write. 0 uses DefaultMaxCommitsPerGroup, 1 writes every
+	// commit on its own. Grouping never changes results or durability.
+	MaxCommitsPerGroup int
+	// MaxEventsPerGroup and MaxBytesPerGroup bound the events and the
+	// payload bytes of one group. 0 uses DefaultMaxEventsPerGroup and
+	// DefaultMaxBytesPerGroup. They only split groups: a single commit of
+	// any size is written, nothing is rejected or truncated.
+	MaxEventsPerGroup int
+	MaxBytesPerGroup  int
 }
 
 // Store is an open GenesisDB data directory. It is safe for concurrent use.
@@ -90,6 +101,14 @@ type Options struct {
 // readers and exclusively by maintenance (rebuild, restore, close), so
 // readers never see a partly rebuilt index. Maintenance always takes
 // writeMutex before maintenanceMutex.
+//
+// Commits queue in commitQueue. The caller holding the commitLeader baton
+// takes writeMutex and writes a group of queued commits, see
+// commit_group.go. The baton is always taken before writeMutex. Other
+// writers announce themselves in waitingWriters, so group leaders let them
+// pass. When such a writer releases the lock while commits are queued, it
+// sets isCommitTurn, so the commits write one group before the next
+// announced writer. writeLockReleases wakes the waiters of writeMutex.
 type Store struct {
 	dataDirectory string
 	format        layout.Format
@@ -108,7 +127,17 @@ type Store struct {
 
 	writeMutex       sync.Mutex
 	maintenanceMutex sync.RWMutex
-	isClosed         bool
+
+	commitQueue        commitQueue
+	commitLeader       chan struct{}
+	maxCommitsPerGroup int
+	maxEventsPerGroup  int
+	maxBytesPerGroup   int
+	waitingWriters     atomic.Int32
+	isCommitTurn       atomic.Bool
+	writeLockReleases  releaseBroadcast
+
+	isClosed bool
 }
 
 // Open opens a data directory, creating it if needed. It acquires exclusive
@@ -124,6 +153,19 @@ func Open(dataDirectory string, options Options) (*Store, error) {
 		return nil, err
 	}
 	s := &Store{dataDirectory: dataDirectory, lock: lock, observer: options.Observer, logger: options.Logger, faults: options.Faults}
+	s.commitLeader = make(chan struct{}, 1)
+	s.maxCommitsPerGroup = options.MaxCommitsPerGroup
+	if s.maxCommitsPerGroup <= 0 {
+		s.maxCommitsPerGroup = DefaultMaxCommitsPerGroup
+	}
+	s.maxEventsPerGroup = options.MaxEventsPerGroup
+	if s.maxEventsPerGroup <= 0 {
+		s.maxEventsPerGroup = DefaultMaxEventsPerGroup
+	}
+	s.maxBytesPerGroup = options.MaxBytesPerGroup
+	if s.maxBytesPerGroup <= 0 {
+		s.maxBytesPerGroup = DefaultMaxBytesPerGroup
+	}
 	if s.observer == nil {
 		s.observer = core.NoopObserver{}
 	}

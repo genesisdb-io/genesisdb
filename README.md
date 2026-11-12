@@ -159,6 +159,9 @@ Everything is configured with environment variables, a `.env` file in the workin
 | `GENESISDB_MAX_READ_BYTES` | `0` (unbounded) | Optional cap on selected bytes per request |
 | `GENESISDB_MAX_CONCURRENT_REQUESTS` | `0` (unbounded) | Optional cap on active requests including subscriptions |
 | `GENESISDB_REQUEST_TIMEOUT_SECONDS` | `0` (none) | Optional deadline for non-streaming requests |
+| `GENESISDB_MAX_COMMITS_PER_GROUP` | `0` (256) | Concurrent commits that share one durable write, `1` writes every commit on its own |
+| `GENESISDB_MAX_EVENTS_PER_GROUP` | `0` (1024) | Events of one such write. Only splits groups, a larger commit is written on its own |
+| `GENESISDB_MAX_BYTES_PER_GROUP` | `0` (8 MiB) | Payload bytes of one such write. Only splits groups, a larger commit is written on its own |
 | `GENESISDB_TZ` | system | Event timestamp time zone |
 | `GENESISDB_MEMCACHE` | `true` | Set to `false` to disable event caching |
 | `GENESISDB_MEMCACHE_SIZE` | `10000` | Cache entry count, not a byte limit |
@@ -178,8 +181,9 @@ OTLP export additionally requires `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTE
 
 - Requests accept exactly one JSON value in valid UTF-8. Nothing is capped by default: no limit on events per commit, events per store, selection size, backup size or request duration. Fetches, queries and backups always return the complete result. The `GENESISDB_MAX_*` caps are opt-in, a hit cap fails the request explicitly (`413`, `422`, `429`), never with a truncated result.
 - Query `LIMIT` and fetch bounds are applied after loading, not as storage-level pagination.
-- Backups, hash audits and erasures hold the writer lock: commits wait until they finish, reads continue. Schedule them outside peak write load.
+- Backups, hash audits and erasures hold the writer lock: commits wait until they finish, reads continue. Schedule them outside peak write load. They take the lock ahead of waiting commits, and waiting commits are written between two of them.
 - A failed commit can be durable already. Check state before retrying. Once an ambiguous storage error occurs, the store rejects writes until a restart has replayed the write-ahead log.
+- Commits that arrive at the same moment are written together and share one device flush. Each commit stays atomic and gets its own answer, and the result equals executing them one after another. An ambiguous storage error therefore reaches every commit that was written together with the failing one: all of them answer with an error, and after the restart all of them are durable or none is.
 - Reads and subscriptions return events in commit order, independent of event timestamps.
 - Durability depends on a filesystem and hardware that honor file and directory synchronization. This is not a distributed database and does not provide replication or consensus.
 - With event signatures enabled but `GENESISDB_TRUSTED_SIGNING_KEYS` unset, the server logs a warning at start and `GET /api/v2/admin/audit` ends with a warning line. Scripts that parse the audit answer must allow for it, or pin the trusted keys. The audit also reports a `System event signatures:` line for the erasure audit trail.

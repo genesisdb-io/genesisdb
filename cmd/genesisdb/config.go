@@ -52,6 +52,13 @@ type Config struct {
 	TrustedSigningKeys []core.SigningPublicKey
 	// RevokedSigningKeys withdraw trust from compromised keys.
 	RevokedSigningKeys []core.SigningKeyRevocation
+	// MaxCommitsPerGroup bounds how many concurrent commits share one
+	// durable write. 0 uses the default of the store, 1 disables grouping.
+	MaxCommitsPerGroup int
+	// MaxEventsPerGroup and MaxBytesPerGroup bound the events and payload
+	// bytes of one group. 0 uses the defaults of the store.
+	MaxEventsPerGroup int
+	MaxBytesPerGroup  int
 }
 
 // Environment variables that earlier releases understood and that are gone.
@@ -148,6 +155,21 @@ func loadConfig(lookup func(string) (string, bool), logger *slog.Logger) (*Confi
 		return nil, err
 	}
 	config.MaxConcurrentRequests = int(n)
+	n, err = optionalLimit("GENESISDB_MAX_COMMITS_PER_GROUP")
+	if err != nil {
+		return nil, fmt.Errorf("GENESISDB_MAX_COMMITS_PER_GROUP must be 0 (default) or a positive integer")
+	}
+	config.MaxCommitsPerGroup = int(n)
+	n, err = optionalLimit("GENESISDB_MAX_EVENTS_PER_GROUP")
+	if err != nil {
+		return nil, fmt.Errorf("GENESISDB_MAX_EVENTS_PER_GROUP must be 0 (default) or a positive integer")
+	}
+	config.MaxEventsPerGroup = int(n)
+	n, err = optionalLimit("GENESISDB_MAX_BYTES_PER_GROUP")
+	if err != nil {
+		return nil, fmt.Errorf("GENESISDB_MAX_BYTES_PER_GROUP must be 0 (default) or a positive integer")
+	}
+	config.MaxBytesPerGroup = int(n)
 	n, err = optionalLimit("GENESISDB_REQUEST_TIMEOUT_SECONDS")
 	if err != nil {
 		return nil, err

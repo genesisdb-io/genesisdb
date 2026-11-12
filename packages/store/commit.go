@@ -3,14 +3,12 @@ package store
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"time"
 
 	"github.com/genesisdb-io/genesisdb/v2/packages/core"
-	"github.com/genesisdb-io/genesisdb/v2/packages/storage"
 )
 
 // Commit appends events atomically after checking the preconditions under
@@ -24,12 +22,18 @@ import (
 // If an error is returned after the events reached the event log, they are
 // durable: the store is marked unhealthy and finishes indexing on restart.
 // Do not retry blindly in that case.
+//
+// Commits that wait at the same moment are written together as one group,
+// see commit_group.go. Each commit stays atomic and gets its own result. A
+// storage failure reaches every commit of the group it hits.
 func (s *Store) Commit(ctx context.Context, events []*core.Event, preconditions ...core.Precondition) error {
 	return s.CommitValidated(ctx, events, nil, preconditions...)
 }
 
 // CommitValidated also validates payloads under the writer lock, serialized
 // with UpdateSchemas. validate must not call Store methods or mutate events.
+// It may run on the goroutine of another Commit caller, so it must not rely
+// on goroutine-local state.
 func (s *Store) CommitValidated(ctx context.Context, events []*core.Event, validate func(*core.Event) error, preconditions ...core.Precondition) error {
 	if len(events) == 0 && len(preconditions) == 0 {
 		return nil
@@ -40,60 +44,13 @@ func (s *Store) CommitValidated(ctx context.Context, events []*core.Event, valid
 			return err
 		}
 	}
-
-	if err := acquireContext(ctx, s.writeMutex.TryLock); err != nil {
-		return err
-	}
-	defer s.writeMutex.Unlock()
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	if err := s.checkWritable(); err != nil {
-		return err
-	}
-	if validate != nil {
-		for _, event := range events {
-			if err := validate(event); err != nil {
-				return fmt.Errorf("%w: %v", core.ErrInvalidEvent, err)
-			}
-		}
-	}
-	if err := s.checkPreconditionsWhileLocked(withWriteLockHeld(ctx), preconditions); err != nil {
-		return err
-	}
-	if len(events) == 0 {
-		return nil
-	}
-
-	appended, err := s.storage.Append(ctx, events)
-	if err != nil {
-		s.observer.ErrorOccurred("commit")
-		if !errors.Is(err, storage.ErrNothingWritten) {
-			// The batch may be durable already. Reject further writes until
-			// a restart has recovered it.
-			s.index.MarkFailed(err)
-			return fmt.Errorf("store marked unhealthy, the batch is recovered on restart: %w", err)
-		}
-		return err
-	}
-	if err := s.index.Publish(appended.Events, appended.MainEventLogSize); err != nil {
-		s.observer.ErrorOccurred("commit")
-		s.index.MarkFailed(err)
-		return fmt.Errorf("events are durable but indexing failed; store marked unhealthy until restart recovery: %w", err)
-	}
-	for position, stored := range appended.Events {
-		s.observer.EventCommitted(stored.Event.Subject, stored.Event.Type)
-		if data, hasReferenceData := appended.ReferenceData[position]; hasReferenceData {
-			stored.Event.Data = data
-		}
-	}
-	s.measure("commit", started, nil)
-	return nil
+	return s.awaitCommit(ctx, newPendingCommit(ctx, events, validate, preconditions, started))
 }
 
-// checkPreconditionsWhileLocked evaluates every precondition. The caller
-// holds writeMutex. Reads used here only take the shared maintenance lock.
-func (s *Store) checkPreconditionsWhileLocked(ctx context.Context, preconditions []core.Precondition) error {
+// checkPreconditionsWhileLocked evaluates every precondition against the
+// published state. The caller holds writeMutex. Reads used here only take
+// the shared maintenance lock. group caches subject lookups of its leader.
+func (s *Store) checkPreconditionsWhileLocked(ctx context.Context, group *commitGroup, preconditions []core.Precondition) error {
 	for _, precondition := range preconditions {
 		switch precondition.Type {
 		case core.PreconditionIsSubjectNew, core.PreconditionIsSubjectExisting:
@@ -103,7 +60,7 @@ func (s *Store) checkPreconditionsWhileLocked(ctx context.Context, preconditions
 			if err := json.Unmarshal(precondition.Payload, &payload); err != nil {
 				return fmt.Errorf("invalid %s payload: %w", precondition.Type, err)
 			}
-			exists, err := s.subjectExistsContext(ctx, payload.Subject)
+			exists, err := s.subjectExistsWhileLocked(ctx, group, payload.Subject)
 			if err != nil {
 				return fmt.Errorf("failed to check subject: %w", err)
 			}

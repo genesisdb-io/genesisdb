@@ -25,14 +25,14 @@ func TestSecureConfigurationDefaultsAndValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Every limit is opt-in: unset means unbounded.
-	if config.Host != "127.0.0.1" || config.MaxConcurrentRequests != 0 || config.MaxRequestBytes != 0 || config.MaxRestoreBytes != 0 || config.MaxReadEvents != 0 || config.MaxReadBytes != 0 || config.RequestTimeout != 0 {
+	if config.Host != "127.0.0.1" || config.MaxConcurrentRequests != 0 || config.MaxRequestBytes != 0 || config.MaxRestoreBytes != 0 || config.MaxReadEvents != 0 || config.MaxReadBytes != 0 || config.RequestTimeout != 0 || config.MaxCommitsPerGroup != 0 || config.MaxEventsPerGroup != 0 || config.MaxBytesPerGroup != 0 {
 		t.Fatalf("unexpected security defaults: %+v", config)
 	}
-	limited, err := load(map[string]string{"GENESISDB_MAX_READ_EVENTS": "500", "GENESISDB_MAX_CONCURRENT_REQUESTS": "8", "GENESISDB_REQUEST_TIMEOUT_SECONDS": "30"})
+	limited, err := load(map[string]string{"GENESISDB_MAX_READ_EVENTS": "500", "GENESISDB_MAX_CONCURRENT_REQUESTS": "8", "GENESISDB_REQUEST_TIMEOUT_SECONDS": "30", "GENESISDB_MAX_COMMITS_PER_GROUP": "1", "GENESISDB_MAX_EVENTS_PER_GROUP": "64", "GENESISDB_MAX_BYTES_PER_GROUP": "1048576"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if limited.MaxReadEvents != 500 || limited.MaxConcurrentRequests != 8 || limited.RequestTimeout != 30*time.Second {
+	if limited.MaxReadEvents != 500 || limited.MaxConcurrentRequests != 8 || limited.RequestTimeout != 30*time.Second || limited.MaxCommitsPerGroup != 1 || limited.MaxEventsPerGroup != 64 || limited.MaxBytesPerGroup != 1048576 {
 		t.Fatalf("explicit limits not applied: %+v", limited)
 	}
 	for name, env := range map[string]map[string]string{
@@ -45,6 +45,9 @@ func TestSecureConfigurationDefaultsAndValidation(t *testing.T) {
 		"negative restore budget": {"GENESISDB_MAX_RESTORE_BYTES": "-1"},
 		"negative read budget":    {"GENESISDB_MAX_READ_EVENTS": "-5"},
 		"invalid concurrency":     {"GENESISDB_MAX_CONCURRENT_REQUESTS": "invalid"},
+		"negative commit group":   {"GENESISDB_MAX_COMMITS_PER_GROUP": "-1"},
+		"negative group events":   {"GENESISDB_MAX_EVENTS_PER_GROUP": "-1"},
+		"invalid group bytes":     {"GENESISDB_MAX_BYTES_PER_GROUP": "8MiB"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := load(env); err == nil {

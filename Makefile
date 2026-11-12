@@ -1,4 +1,4 @@
-.PHONY: build release-binaries test compatibility lint vuln fuzz bench licenses install-tools clean fmt
+.PHONY: build release-binaries test compatibility lint vuln fuzz bench crash licenses install-tools clean fmt
 
 STATICCHECK_VERSION := v0.8.2
 GOVULNCHECK_VERSION := v1.9.0
@@ -64,9 +64,16 @@ fuzz:
 	go test ./packages/core -run='^$$' -fuzz=FuzzDecodeBackup -fuzztime=15s -parallel=2
 	go test ./packages/index -run='^$$' -fuzz=FuzzCompactCodec -fuzztime=15s -parallel=2
 	go test ./packages/store -run='^$$' -fuzz=FuzzCommitRoundTrip -fuzztime=30s -parallel=2
+	go test ./packages/store -run='^$$' -fuzz=FuzzGroupCommitSerialEquivalence -fuzztime=30s -parallel=2
 
 bench:
 	go test ./packages/query ./packages/store -run='^$$' -bench=. -benchmem -benchtime=10x
+
+# Runs the real server under concurrent load and stops it over and over,
+# then checks every acknowledged commit. CRASH_DURATION sets the length.
+CRASH_DURATION ?= 5m
+crash:
+	GENESISDB_CRASH_TEST=$(CRASH_DURATION) go test -count=1 -run TestCrash -v -timeout 0 ./tests
 
 fmt:
 	gofmt -w .

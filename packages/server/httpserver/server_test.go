@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -380,4 +381,62 @@ func TestSubscribe_EndsWithAnErrorEvent(t *testing.T) {
 		}
 	}
 	t.Fatal("stream ended without an explicit error event")
+}
+
+// TestCommit_ConcurrentRequestsReturnTheirOwnEvents sends commits at the
+// same time, so the store writes them as groups. Every response must carry
+// the events of its own request, with the reference payload resolved.
+func TestCommit_ConcurrentRequestsReturnTheirOwnEvents(t *testing.T) {
+	server, s := newTestServer(t)
+	const requests = 24
+	type outcome struct {
+		status int
+		body   string
+	}
+	outcomes := make([]outcome, requests)
+	var group sync.WaitGroup
+	for position := 0; position < requests; position++ {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			body := fmt.Sprintf(`{"events":[{"source":"s","subject":"/concurrent/%d","type":"created","data":{"marker":"inline-%d"}},{"source":"s","subject":"/concurrent/%d/profile","type":"profiled","data":{"marker":"reference-%d"},"options":{"storeDataAsReference":true}}],"preconditions":[{"type":"isSubjectNew","payload":{"subject":"/concurrent/%d"}}]}`, position, position, position, position, position)
+			request, _ := http.NewRequest(http.MethodPost, server.URL+"/api/v2/commit", strings.NewReader(body))
+			request.Header.Set("Authorization", "Bearer secret")
+			request.Header.Set("X-Disable-Ndjson", "1")
+			response, err := http.DefaultClient.Do(request)
+			if err != nil {
+				outcomes[position] = outcome{body: err.Error()}
+				return
+			}
+			defer response.Body.Close()
+			content, _ := io.ReadAll(response.Body)
+			outcomes[position] = outcome{status: response.StatusCode, body: string(content)}
+		}()
+	}
+	group.Wait()
+	for position, result := range outcomes {
+		if result.status != http.StatusOK {
+			t.Fatalf("request %d: %d %s", position, result.status, result.body)
+		}
+		var events []struct {
+			Subject string          `json:"subject"`
+			Data    json.RawMessage `json:"data"`
+		}
+		if err := json.Unmarshal([]byte(result.body), &events); err != nil || len(events) != 2 {
+			t.Fatalf("request %d: %v %s", position, err, result.body)
+		}
+		if events[0].Subject != fmt.Sprintf("/concurrent/%d", position) || !strings.Contains(string(events[0].Data), fmt.Sprintf(`"inline-%d"`, position)) {
+			t.Errorf("request %d got a foreign first event: %s", position, result.body)
+		}
+		if events[1].Subject != fmt.Sprintf("/concurrent/%d/profile", position) || !strings.Contains(string(events[1].Data), fmt.Sprintf(`"reference-%d"`, position)) {
+			t.Errorf("request %d got a foreign reference payload: %s", position, result.body)
+		}
+	}
+	if count, err := s.CountEvents(); err != nil || count != 2*requests {
+		t.Fatalf("%d events, %v", count, err)
+	}
+	report, err := s.VerifyHashChain(context.Background())
+	if err != nil || !report.IsValid() {
+		t.Fatalf("hash chain: %+v %v", report, err)
+	}
 }

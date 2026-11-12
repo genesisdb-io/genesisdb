@@ -6,10 +6,10 @@ import "context"
 // The callback must only update schema files and must not call Store methods.
 // Embedded applications must use this method for schema changes while open.
 func (s *Store) UpdateSchemas(ctx context.Context, update func(directory string) error) error {
-	if err := acquireContext(ctx, s.writeMutex.TryLock); err != nil {
+	if err := s.acquireWriteLock(ctx); err != nil {
 		return err
 	}
-	defer s.writeMutex.Unlock()
+	defer s.releaseWriteLock()
 	if err := ctx.Err(); err != nil {
 		return err
 	}
