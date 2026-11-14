@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -130,7 +131,7 @@ func (queue *commitQueue) withdraw(member *pendingCommit) bool {
 	}
 	for position, candidate := range queue.members {
 		if candidate == member {
-			queue.members = append(queue.members[:position], queue.members[position+1:]...)
+			queue.members = slices.Delete(queue.members, position, position+1)
 			break
 		}
 	}
