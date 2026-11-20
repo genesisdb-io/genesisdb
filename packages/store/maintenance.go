@@ -22,10 +22,10 @@ import (
 // rebuild never clears a storage failure: after one, only a restart that
 // replays the write-ahead log makes the store writable again.
 func (s *Store) RebuildIndexes(ctx context.Context) (int64, error) {
-	if err := acquireContext(ctx, s.writeMutex.TryLock); err != nil {
+	if err := s.acquireWriteLock(ctx); err != nil {
 		return 0, err
 	}
-	defer s.writeMutex.Unlock()
+	defer s.releaseWriteLock()
 	if err := acquireContext(ctx, s.maintenanceMutex.TryLock); err != nil {
 		return 0, err
 	}
@@ -52,10 +52,10 @@ func (s *Store) RebuildIndexes(ctx context.Context) (int64, error) {
 // every event signature, against the trusted keys if configured, otherwise
 // against the keys recorded in the data directory.
 func (s *Store) VerifyHashChain(ctx context.Context) (*storage.HashChainReport, error) {
-	if err := acquireContext(ctx, s.writeMutex.TryLock); err != nil {
+	if err := s.acquireWriteLock(ctx); err != nil {
 		return nil, err
 	}
-	defer s.writeMutex.Unlock()
+	defer s.releaseWriteLock()
 	if err := s.checkWritable(); err != nil {
 		return nil, err
 	}
@@ -72,10 +72,10 @@ func (s *Store) VerifyHashChain(ctx context.Context) (*storage.HashChainReport, 
 // exported only as reference data, never embedded in event data. The
 // extended form is chosen when reference data or system events exist.
 func (s *Store) Backup(ctx context.Context) (*core.Backup, error) {
-	if err := acquireContext(ctx, s.writeMutex.TryLock); err != nil {
+	if err := s.acquireWriteLock(ctx); err != nil {
 		return nil, err
 	}
-	defer s.writeMutex.Unlock()
+	defer s.releaseWriteLock()
 	if err := acquireContext(ctx, s.maintenanceMutex.TryRLock); err != nil {
 		return nil, err
 	}
@@ -195,10 +195,10 @@ func (s *Store) Backup(ctx context.Context) (*core.Backup, error) {
 // core.ErrNotEmpty, an invalid backup with core.ErrInvalidBackup. In both
 // cases nothing is written.
 func (s *Store) Restore(ctx context.Context, backup *core.Backup) error {
-	if err := acquireContext(ctx, s.writeMutex.TryLock); err != nil {
+	if err := s.acquireWriteLock(ctx); err != nil {
 		return err
 	}
-	defer s.writeMutex.Unlock()
+	defer s.releaseWriteLock()
 	if err := acquireContext(ctx, s.maintenanceMutex.TryLock); err != nil {
 		return err
 	}
@@ -295,10 +295,10 @@ func (s *Store) LoadReferenceData(key string) (json.RawMessage, error) {
 // atomic rewrite and returns the keys that existed. Readers are excluded
 // only while the new file becomes visible. The cache is cleared.
 func (s *Store) ReplaceReferenceData(ctx context.Context, updates map[string]json.RawMessage) (map[string]bool, error) {
-	if err := acquireContext(ctx, s.writeMutex.TryLock); err != nil {
+	if err := s.acquireWriteLock(ctx); err != nil {
 		return nil, err
 	}
-	defer s.writeMutex.Unlock()
+	defer s.releaseWriteLock()
 	if err := s.checkWritable(); err != nil {
 		return nil, err
 	}
@@ -336,10 +336,10 @@ type EraseReport struct {
 // (once to check the keys exist, once to rewrite it). Cancellation of ctx
 // is observed until the rewrite starts.
 func (s *Store) Erase(ctx context.Context, subject string) (*EraseReport, error) {
-	if err := acquireContext(ctx, s.writeMutex.TryLock); err != nil {
+	if err := s.acquireWriteLock(ctx); err != nil {
 		return nil, err
 	}
-	defer s.writeMutex.Unlock()
+	defer s.releaseWriteLock()
 	if err := s.checkWritable(); err != nil {
 		return nil, err
 	}

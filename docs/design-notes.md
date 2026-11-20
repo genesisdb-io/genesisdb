@@ -43,6 +43,35 @@ Measured on Apple M1 Pro over HTTP, one client, durable, median of 20 commits (2
 
 One `F_FULLFSYNC` costs about 4 ms on this machine, so a single event commit is bound by the device, not by GenesisDB. Linux with a server SSD is faster. Batches of 500 with four parallel clients sustain about 12,000 events per second, the seeder in `scripts/seed.py` writes 500,000 realistic events in 47 seconds (10,700 events per second). These are local observations, not guarantees.
 
+### Concurrent commits
+
+Commits that wait at the same moment are written as one group. They share the write-ahead log record, the log appends, the shard syncs and the journal flush, so the cost of the device flush is paid once per group instead of once per commit. A group is written exactly like one client batch with the same events, which is why the storage engine, the index engine, the on-disk formats and recovery are untouched.
+
+- There is no background goroutine and no timer. Commits queue in arrival order, one of the waiting callers writes the group, and the commits that arrive meanwhile form the next group. A single writer takes the same path with a group of one and is not delayed.
+- Preconditions are only evaluated against published, durable state. A commit joins a group only if none of its preconditions can observe the unpublished events of the commits before it. A commit with a query precondition, or with a subject precondition on a subject that an earlier commit of the group creates, starts the next group. The outcome equals executing the commits one after another in arrival order.
+- A group holds at most 256 commits (`GENESISDB_MAX_COMMITS_PER_GROUP`), 1,024 events (`GENESISDB_MAX_EVENTS_PER_GROUP`) and 8 MiB of payload (`GENESISDB_MAX_BYTES_PER_GROUP`). The limits only split groups: a single commit of any size is written as before, nothing is rejected or truncated.
+- Each commit stays atomic and gets its own result. A storage failure reaches every commit of the group it hits, see the README.
+- Backups, audits, erasures, rebuilds and schema registrations announce themselves, and group leaders let them take the writer lock first. Otherwise the next group would retake the lock before a waiting administrator request sees it free. The priority is bounded: an administrator request that releases the lock while commits are queued hands the next turn to them, so the following administrator request waits for one commit group. Under load both sides alternate and neither can starve the other. Releases of the writer lock wake its waiters directly, a handover does not wait for a poll.
+- The caller that writes a group also evaluates the validation and the preconditions of the other commits in it, and may write a group ahead of its own commit. It only does work that is in front of its own commit in the queue, so this is time it would otherwise spend waiting.
+
+Measured in process on Apple M1 Pro, single-event commits of about 150 bytes on distinct subjects, 1,000 commits per case. The grouped columns are the median of three runs, the columns for one commit per write are one run of the release before group commit. `p99` is the latency of the slowest percent of commits, measured from the call to the acknowledgement:
+
+| Concurrent writers | One commit per write | p99 | Grouped | p99 |
+|---|---|---|---|---|
+| 1 | 127 commits/s | 13 ms | 131 commits/s | 13 ms |
+| 4 | 126 commits/s | 14 ms | 296 commits/s | 26 ms |
+| 16 | 123 commits/s | 8.0 s | 826 commits/s | 29 ms |
+| 64 | 123 commits/s | 8.0 s | 2,254 commits/s | 45 ms |
+| 256 | 112 commits/s | 8.8 s | 4,370 commits/s | 82 ms |
+
+The left columns are the release before group commit, where waiting commits polled for the writer lock and some waited for seconds. Grouping does not make a single commit faster, it lets concurrent commits share the flush and serves them in arrival order. Workloads in which every commit carries a query precondition are still written one commit at a time. `BenchmarkCommitParallel` in `packages/store` repeats the measurement, also with `MaxCommitsPerGroup: 1`. That setting keeps the arrival order of this release, so it is not the left column: with 256 writers it reached about 124 commits per second with a p99 of 2.5 s. Single runs vary, one of three runs with one writer measured 107 commits per second and a p99 of 30 ms.
+
+Over HTTP on the same machine, 600 single-event commits per case: one client 112 commits per second with and without grouping, 16 clients 661 instead of 107 (p99 33 ms instead of 2.4 s), 64 clients 1,770 instead of 99 (p99 58 ms instead of 5.5 s).
+
+In a Linux container on the same machine (Go 1.26.10, overlay filesystem of the container runtime, not a server SSD), grouped against groups of one commit: one writer 498 against 484 commits per second, 16 writers 1,749 against 475, 64 writers 2,533 against 463, 256 writers 3,806 against 471.
+
+The group size of 256 commits was chosen by measurement: with 256 writers it reached about 6,500 commits per second, against about 3,500 with groups of 64 and about 5,800 with groups of 1,024. With 64 writers, groups of 64, 256 and 1,024 were equal within noise. These are local observations, not guarantees.
+
 ### Small store
 
 The same machine, a fresh store, events of about 300 bytes on 5,000 subjects below `/order`, one event type. Writes first, then reads on the resulting 24,220 events. Median over HTTP, warm process:
@@ -92,8 +121,9 @@ The same machine (Apple M1 Pro, 16 GB, APFS), a store seeded with `scripts/seed.
 ## Validation
 
 - Security, durability, corruption, concurrency, hash-tampering, schema, budget, permission and compatibility tests run with the race detector on Linux and macOS.
-- Fuzz targets cover the query parser, the backup decoder and the commit round trip (`FuzzCommitRoundTrip`: an accepted event is found by ID and exact subject, carries the submitted payload and leaves the chain valid). Crashing inputs are kept as regression fixtures.
+- Fuzz targets cover the query parser, the backup decoder and the commit round trip (`FuzzCommitRoundTrip`: an accepted event is found by ID and exact subject, carries the submitted payload and leaves the chain valid). `FuzzGroupCommitSerialEquivalence` checks that a queue of concurrent commits with subject preconditions has the outcome of executing them one after another. Crashing inputs are kept as regression fixtures.
 - Disk-full tests run against a real small volume (`GENESISDB_FULL_VOLUME`, tmpfs in the CI, HFS+ locally): a commit that hits ENOSPC marks the store unhealthy, no acknowledged event is lost, at most the in-flight batch appears after recovery, and a restart on a still full volume either serves every acknowledged event or refuses with ENOSPC when a complete batch awaits replay.
+- An opt-in crash test (`make crash`) runs the real server under concurrent HTTP load and stops it over and over with `SIGKILL` or `SIGTERM`. With an externally provided volume it can also cut the power, discarding every write that was not flushed. After each stop it checks every commit against the answer its client received. See CONTRIBUTING.md.
 - Pinned audit tools: staticcheck, govulncheck, gitleaks over the full history, Trivy over the container image. The engines import the standard library only, which an architecture test enforces.
 - The container runs as UID 10001 with CA certificates and configurable patched base images.
 
@@ -104,4 +134,4 @@ The same machine (Apple M1 Pro, 16 GB, APFS), a store seeded with `scripts/seed.
 - Restore validates schema paths and JSON structurally, not every schema's semantics.
 - Hash chains do not authenticate an attacker-controlled directory. Erasure does not remove immutable metadata, old backups, snapshots or disk remnants.
 - This is a single-node database without replication or consensus.
-- Extended workload and power-loss testing are outside the automated gates. Run the disk-full tests on the deployment filesystem.
+- Extended workload and power-loss testing are outside the automated gates: the crash test is run by hand, and a power cut needs a volume set up outside the repository. Whether a physical drive honors a flush is not tested. Run the disk-full tests on the deployment filesystem.

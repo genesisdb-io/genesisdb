@@ -57,6 +57,7 @@ The administrator token passes every route. Administration lives under `/api/v2/
 - `data` must be a JSON object, at most about 64 KB per event. Instead of `data`, the legacy field `ref` stores the payload as reference data.
 - `options.storeDataAsReference` stores the payload as reference data, so it can be erased later.
 - All events of one request are published atomically. There is no limit on the number of events or preconditions per request.
+- Requests that arrive at the same moment are written together and share one device flush. Every request still gets its own events and its own status, and the result equals executing the requests one after another in arrival order.
 - Legacy `ref` and `options.storeDataAsReference` may be combined without storing the payload twice. `data` and `ref` together are rejected.
 - Schema enforcement is repeated under the writer lock, serialized with schema registration.
 
@@ -70,7 +71,7 @@ Preconditions are checked atomically with the commit:
 
 A failed precondition answers `412` with `{"type": "...", "message": "..."}`.
 
-If a commit fails after its events reached the event log, the events are durable and become visible after a restart. The store then rejects writes until it is restarted. Do not retry a failed commit blindly, check whether it was applied first.
+If a commit fails after its events reached the event log, the events are durable and become visible after a restart. The store then rejects writes until it is restarted. Do not retry a failed commit blindly, check whether it was applied first. Such a failure reaches every commit that was written together with the failing one: all of them answer with the error, and after the restart all of them are visible or none is.
 
 ## Fetch
 

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/genesisdb-io/genesisdb/v2/packages/core"
@@ -191,5 +192,76 @@ func TestDiskFull_RestartOnFullVolume(t *testing.T) {
 		t.Fatalf("hash chain: %+v %v", report, err)
 	}
 	commitTestEvent(t, s, "/d/2", "t")
+	assertConsistentWithEventLog(t, s)
+}
+
+// TestDiskFull_ConcurrentCommitsUntilFull fills the volume with commits from
+// several writers, so the commit that hits ENOSPC is a group. No
+// acknowledged event may be lost, and at most the commits of the one group
+// in flight appear additionally after recovery.
+func TestDiskFull_ConcurrentCommitsUntilFull(t *testing.T) {
+	root := fullVolumeRoot(t)
+	ctx := context.Background()
+	directory := filepath.Join(root, "data")
+	s := openTestStore(t, directory, testStoreOptions{convertLegacy: true})
+	payload := map[string]any{"blob": strings.Repeat("x", 30*1024)}
+	const writers = 8
+	var mutex sync.Mutex
+	var acknowledged []string
+	failures := 0
+	var group sync.WaitGroup
+	for writer := 0; writer < writers; writer++ {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			for position := 0; position < 100000; position++ {
+				event := newTestEvent("/d/1", "t", payload)
+				err := s.Commit(ctx, []*core.Event{event})
+				mutex.Lock()
+				if err != nil {
+					failures++
+					mutex.Unlock()
+					return
+				}
+				acknowledged = append(acknowledged, event.ID)
+				mutex.Unlock()
+			}
+		}()
+	}
+	group.Wait()
+	if failures != writers {
+		t.Fatalf("%d of %d writers failed, the volume did not fill up, use a smaller one", failures, writers)
+	}
+	if s.IsReady() {
+		t.Fatal("store ready after a failed append")
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	freeVolume(t, root)
+	s = openTestStore(t, directory, testStoreOptions{convertLegacy: true})
+	defer s.Close()
+	all, err := s.Fetch(ctx, "/d", FetchOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	present := map[string]bool{}
+	for _, event := range all {
+		present[event.ID] = true
+	}
+	for _, id := range acknowledged {
+		if !present[id] {
+			t.Errorf("acknowledged event %s lost", id)
+		}
+	}
+	if len(all) > len(acknowledged)+writers {
+		t.Errorf("%d events after restart, expected at most %d", len(all), len(acknowledged)+writers)
+	}
+	report, err := s.VerifyHashChain(ctx)
+	if err != nil || !report.IsValid() {
+		t.Fatalf("hash chain after disk-full recovery: %+v %v", report, err)
+	}
+	commitTestEvent(t, s, "/d/3", "t")
 	assertConsistentWithEventLog(t, s)
 }

@@ -57,7 +57,7 @@ Read [docs/storage-format.md](docs/storage-format.md) before modifying writes, r
 
 ## Setup and checks
 
-Use Go 1.26.10 or a newer patched release consistent with `go.mod`. The Makefile pins development tool versions.
+Use Go 1.26.11 or a newer patched release consistent with `go.mod`. The Makefile pins development tool versions.
 
 ```sh
 make install-tools   # install pinned lint, vulnerability, secret and license tools

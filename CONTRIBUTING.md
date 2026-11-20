@@ -67,6 +67,19 @@ sudo umount /tmp/gdbfull
 
 A volume that was filled to the last byte by a previous run may refuse `unlink` (HFS+). Reformat it between runs.
 
+## Crash test
+
+`tests/crash_test.go` starts the real server binary, commits over HTTP from many concurrent clients and stops the server in the middle of writing, over and over. After every stop it verifies the stopped directory offline, restarts the server and compares the store with what every client was told: no acknowledged commit may be missing, changed or reordered, no commit may be partly present, no rejected commit may be stored, and two commits that raced for one new subject must never both have won. Events are signed, audits, backups and erasures run during the load. The test skips unless `GENESISDB_CRASH_TEST` holds a duration. It always creates its own data directory.
+
+```sh
+make crash                        # 5 minutes of kills and graceful stops
+make crash CRASH_DURATION=2h      # as long as you like
+```
+
+A kill ends the process, the page cache of the operating system survives. To test a power loss, set `GENESISDB_CRASH_CUT_COMMAND` and `GENESISDB_CRASH_RESTORE_COMMAND` to commands that cut and restore the volume below `GENESISDB_CRASH_DIRECTORY`, for example a device mapper volume switched to the `error` target. The test then cuts the volume instead of only killing the server. No such setup is part of the repository.
+
+Run the test after changes to commits, the write-ahead log, recovery or the flush strategy. Set `GENESISDB_CRASH_BINARY` to a `go build -race` binary to let the server report data races.
+
 ## Commit messages
 
 Write the subject in the imperative mood, at most 72 characters, and explain the reason in the body when it is not obvious.
