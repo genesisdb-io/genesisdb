@@ -93,7 +93,7 @@ cd genesisdb
 make build        # produces ./bin/genesisdb
 ```
 
-Needs Go 1.26.10 or a newer patched release.
+Needs Go 1.26.11 or a newer patched release.
 
 ### Prebuilt binaries
 

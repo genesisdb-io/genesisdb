@@ -29,4 +29,4 @@ A storage error after durable preparation may leave a commit recoverable even wh
 
 ## Release checks
 
-Use Go 1.26.10 or a newer supported patched release. Run `make lint`, `make test`, `make fuzz` and `make vuln`. The release workflow runs these, gitleaks over the full Git history and a Trivy scan of the container image before anything is tagged. A clean scanner result is evidence, not a security guarantee.
+Use Go 1.26.11 or a newer supported patched release. Run `make lint`, `make test`, `make fuzz` and `make vuln`. The release workflow runs these, gitleaks over the full Git history and a Trivy scan of the container image before anything is tagged. A clean scanner result is evidence, not a security guarantee.
