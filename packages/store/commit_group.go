@@ -325,20 +325,28 @@ func (s *Store) leadCommitGroup(ctx context.Context, own *pendingCommit) {
 	started := time.Now()
 	group := &commitGroup{unpublishedKeys: map[string]struct{}{}, publishedSubjects: map[string]bool{}}
 	hasAppendStarted := false
+	completed := false
 	defer func() {
-		problem := recover()
-		if problem == nil {
+		if completed {
 			return
 		}
-		// Followers must never wait for a leader that is gone.
-		err := fmt.Errorf("commit group failed: %v", problem)
+		// Goexit runs defers without a panic. In either case no caller
+		// remains to process the leader's own request if it is still queued.
+		problem := recover()
+		err := errors.New("commit group leader exited")
+		if problem != nil {
+			err = fmt.Errorf("commit group failed: %v", problem)
+		}
+		s.commitQueue.withdraw(own)
 		if hasAppendStarted {
 			s.index.MarkFailed(err)
 		}
 		for _, member := range group.claimed {
 			member.finish(err)
 		}
-		panic(problem)
+		if problem != nil {
+			panic(problem)
+		}
 	}()
 	writableErr := s.checkWritable()
 	for {
@@ -373,6 +381,7 @@ func (s *Store) leadCommitGroup(ctx context.Context, own *pendingCommit) {
 		}
 	}
 	if len(group.batch) == 0 {
+		completed = true
 		return
 	}
 	hasAppendStarted = true
@@ -390,6 +399,7 @@ func (s *Store) leadCommitGroup(ctx context.Context, own *pendingCommit) {
 	if err == nil {
 		s.measure("commit_group", started, nil)
 	}
+	completed = true
 }
 
 // evaluateCommitWhileLocked validates one claimed commit and checks its
